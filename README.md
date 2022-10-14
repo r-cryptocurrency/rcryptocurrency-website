@@ -1,2 +1,3 @@
-# website
-website for rcryptocurrency subreddit
+#What to do list
+
+- Migrato static website to dynamic --> MySQL PHPMyAdmin 
