@@ -1,0 +1,29 @@
+{
+  "name": "ledger",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint .",
+    "label": "ts-node scripts/label-address.ts",
+    "seed:labels": "ts-node scripts/seed-labels.ts",
+    "cleanup": "ts-node scripts/cleanup-duplicates.ts",
+    "refresh-balances": "ts-node scripts/refresh-balances.ts",
+    "ingest": "ts-node src/ingest-csv.ts"
+  },
+  "dependencies": {
+    "@rcryptocurrency/chain-data": "workspace:*",
+    "@rcryptocurrency/database": "workspace:*",
+    "viem": "^1.0.0",
+    "dotenv": "^16.0.3"
+  },
+  "devDependencies": {
+    "@rcryptocurrency/tsconfig": "workspace:*",
+    "@rcryptocurrency/eslint-config": "workspace:*",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.1.0",
+    "@types/node": "^18.0.0"
+  }
+}

@@ -1,0 +1,206 @@
+import Image from 'next/image'
+import { prisma } from '@rcryptocurrency/database';
+import { Card, Metric, Text, Flex, Grid } from "@tremor/react";
+import Background from '../components/Background';
+import InteractiveMoon from '../components/InteractiveMoon';
+
+export const dynamic = 'force-dynamic';
+
+async function getStats() {
+  const holderCount = await prisma.holder.count();
+  const userCount = await prisma.redditUser.count();
+  const submissionCount = await prisma.submission.count();
+  
+    // Calculate total MOONs tracked (sum of totalBalance)
+  const totalMoons = await prisma.holder.aggregate({
+    _sum: {
+      totalBalance: true
+    }
+  });
+
+  const marketData = await prisma.marketStat.findFirst({
+    orderBy: { timestamp: 'desc' }
+  });
+
+  return {
+    holderCount,
+    userCount,
+    submissionCount,
+    totalMoons: totalMoons._sum.totalBalance || 0,
+    marketData
+  };
+}
+
+export default async function Home() {
+  const stats = await getStats();
+
+  return (
+    <Background>
+      <section className="min-h-screen flex items-center relative overflow-hidden pt-20 rounded-br-[200px]">
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="text-center lg:text-left">
+              <h1 className="text-4xl lg:text-6xl font-bold text-slate-900 dark:text-white mb-4">
+                r/CryptoCurrency
+              </h1>
+              <h2 className="text-2xl lg:text-4xl font-bold text-slate-800 dark:text-white/90 mb-6">
+                The Biggest Crypto Community
+              </h2>
+              <p className="text-lg text-slate-600 dark:text-white/80 mb-8 max-w-2xl mx-auto lg:mx-0">
+                The leading community for cryptocurrency news, discussion, and analysis.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 max-w-2xl mx-auto lg:mx-0">
+                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-6 rounded-xl border border-orange-100 dark:border-slate-800 flex flex-col justify-center items-center text-center">
+                  <h3 className="text-slate-600 dark:text-slate-400 text-sm font-medium mb-2">MOON Price</h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-3xl font-bold text-slate-900 dark:text-white">
+                      ${stats.marketData?.priceUsd.toFixed(4) || '0.0000'}
+                    </p>
+                    <i className="fa-solid fa-moon text-rcc-yellow animate-pulse text-xl"></i>
+                  </div>
+                  <p className={`text-sm font-medium ${(stats.marketData?.change24h || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {(stats.marketData?.change24h || 0) >= 0 ? '+' : ''}
+                    {stats.marketData?.change24h.toFixed(2)}% (24h)
+                  </p>
+                </div>
+
+                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-6 rounded-xl border border-orange-100 dark:border-slate-800 flex flex-col justify-center items-center text-center">
+                  <h3 className="text-slate-600 dark:text-slate-400 text-sm font-medium mb-2">Market Cap</h3>
+                  <p className="text-3xl font-bold text-slate-900 dark:text-white">
+                    ${(stats.marketData?.marketCap || 0).toLocaleString()}
+                  </p>
+                </div>
+
+                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-6 rounded-xl border border-orange-100 dark:border-slate-800 flex flex-col justify-center items-center text-center">
+                  <h3 className="text-slate-600 dark:text-slate-400 text-sm font-medium mb-2">Holders Tracked</h3>
+                  <p className="text-3xl font-bold text-slate-900 dark:text-white">
+                    {stats.holderCount.toLocaleString()}
+                  </p>
+                </div>
+
+                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-6 rounded-xl border border-orange-100 dark:border-slate-800 flex flex-col justify-center items-center text-center">
+                  <h3 className="text-slate-600 dark:text-slate-400 text-sm font-medium mb-2">MOON Earners</h3>
+                  <p className="text-3xl font-bold text-slate-900 dark:text-white">
+                    {stats.userCount.toLocaleString()}
+                  </p>
+                </div>
+
+                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-6 rounded-xl border border-orange-100 dark:border-slate-800 sm:col-span-2 flex flex-col justify-center items-center text-center">
+                  <h3 className="text-slate-600 dark:text-slate-400 text-sm font-medium mb-2">Subscribers</h3>
+                  <p className="text-4xl font-bold text-slate-900 dark:text-white">
+                    {(stats.marketData?.redditSubscribers || 0).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 justify-center lg:justify-start">
+                <a href="/richlist" className="inline-block bg-rcc-orange hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
+                  View Richlist
+                </a>
+                <a href="/stats" className="inline-block bg-transparent border-2 border-rcc-orange text-rcc-orange hover:bg-rcc-orange hover:text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105">
+                  Subreddit Stats
+                </a>
+              </div>
+            </div>
+
+            <div className="hidden lg:block relative">
+              <InteractiveMoon />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Timeline Section */}
+      <section id="timeline" className="py-20 bg-white/50 dark:bg-slate-950/50 relative">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center text-slate-900 dark:text-white mb-16">MOON History</h2>
+          <div className="relative space-y-12">
+            {/* Central Line */}
+            <div className="absolute left-4 md:left-1/2 top-0 bottom-0 w-0.5 bg-rcc-orange/50 md:-ml-[1px]"></div>
+            
+            {/* Timeline Item 1 */}
+            <div className="relative pl-8 md:pl-0">
+              <div className="absolute left-[-5px] md:left-1/2 top-0 w-4 h-4 rounded-full bg-rcc-orange shadow-[0_0_10px_rgba(227,97,57,0.8)] md:-ml-[8px] z-10"></div>
+              <div className="md:flex md:justify-between md:items-center md:flex-row-reverse">
+                <div className="md:w-[45%] mb-2 md:mb-0">
+                  <span className="text-rcc-orange font-bold">Nov 2024</span>
+                </div>
+                <div className="md:w-[45%] bg-white/80 dark:bg-slate-900/90 backdrop-blur-sm p-6 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-rcc-orange/50 transition-colors shadow-sm">
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Unstoppable Domains</h3>
+                  <p className="text-slate-600 dark:text-slate-400">Partnered with Unstoppable Domains to launch .MOON domains.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Timeline Item 2 */}
+            <div className="relative pl-8 md:pl-0">
+              <div className="absolute left-[-5px] md:left-1/2 top-0 w-4 h-4 rounded-full bg-rcc-orange shadow-[0_0_10px_rgba(227,97,57,0.8)] md:-ml-[8px] z-10"></div>
+              <div className="md:flex md:justify-between md:items-center">
+                <div className="md:w-[45%] mb-2 md:mb-0 md:text-right">
+                  <span className="text-rcc-orange font-bold">June 2024</span>
+                </div>
+                <div className="md:w-[45%] bg-white/80 dark:bg-slate-900/90 backdrop-blur-sm p-6 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-rcc-orange/50 transition-colors shadow-sm">
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Moonrise</h3>
+                  <p className="text-slate-600 dark:text-slate-400">Moderators restarted Moon distributions and formed the CCMC DAO.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Timeline Item 3 */}
+            <div className="relative pl-8 md:pl-0">
+              <div className="absolute left-[-5px] md:left-1/2 top-0 w-4 h-4 rounded-full bg-rcc-orange shadow-[0_0_10px_rgba(227,97,57,0.8)] md:-ml-[8px] z-10"></div>
+              <div className="md:flex md:justify-between md:items-center md:flex-row-reverse">
+                <div className="md:w-[45%] mb-2 md:mb-0">
+                  <span className="text-rcc-orange font-bold">March 2024</span>
+                </div>
+                <div className="md:w-[45%] bg-white/80 dark:bg-slate-900/90 backdrop-blur-sm p-6 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-rcc-orange/50 transition-colors shadow-sm">
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Arbitrum One</h3>
+                  <p className="text-slate-600 dark:text-slate-400">Moons can now be bridged to Arbitrum One, a much more active chain than Nova.</p>
+                </div>
+              </div>
+            </div>
+
+             {/* Timeline Item 4 */}
+             <div className="relative pl-8 md:pl-0">
+              <div className="absolute left-[-5px] md:left-1/2 top-0 w-4 h-4 rounded-full bg-rcc-orange shadow-[0_0_10px_rgba(227,97,57,0.8)] md:-ml-[8px] z-10"></div>
+              <div className="md:flex md:justify-between md:items-center">
+                <div className="md:w-[45%] mb-2 md:mb-0 md:text-right">
+                  <span className="text-rcc-orange font-bold">October 2023</span>
+                </div>
+                <div className="md:w-[45%] bg-white/80 dark:bg-slate-900/90 backdrop-blur-sm p-6 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-rcc-orange/50 transition-colors shadow-sm">
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sunsetting of Community Points</h3>
+                  <p className="text-slate-600 dark:text-slate-400">Reddit Admins ends their involvement in Moons. They renounced the Moons contract and burned their ~40M Moons.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer id="site-footer" className="bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 py-12 relative z-10 transition-colors duration-300">
+        <div className="container mx-auto px-4 text-center">
+          <div className="flex justify-center gap-8 mb-8">
+            <a href="https://www.reddit.com/r/CryptoCurrency/" target="_blank" className="text-slate-400 hover:text-rcc-orange text-2xl transition-colors">
+              <i className="fa-brands fa-reddit"></i>
+            </a>
+            <a href="https://twitter.com/CCMoons" target="_blank" className="text-slate-400 hover:text-rcc-orange text-2xl transition-colors">
+              <i className="fa-brands fa-twitter"></i>
+            </a>
+            <a href="https://t.me/rCryptoCurrencyOfficial" target="_blank" className="text-slate-400 hover:text-rcc-orange text-2xl transition-colors">
+              <i className="fa-brands fa-telegram"></i>
+            </a>
+            <a href="https://discord.gg/cryptocurrency" target="_blank" className="text-slate-400 hover:text-rcc-orange text-2xl transition-colors">
+              <i className="fa-brands fa-discord"></i>
+            </a>
+          </div>
+          <p className="text-slate-500 dark:text-slate-400">
+            &copy; {new Date().getFullYear()} r/CryptoCurrency. Community Owned & Operated.
+          </p>
+        </div>
+      </footer>
+    </Background>
+  );
+}

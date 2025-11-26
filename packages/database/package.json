@@ -1,0 +1,19 @@
+{
+  "name": "@rcryptocurrency/database",
+  "version": "0.0.0",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push"
+  },
+  "dependencies": {
+    "@prisma/client": "^4.14.0"
+  },
+  "devDependencies": {
+    "prisma": "^4.14.0",
+    "@ccmoons/tsconfig": "workspace:*",
+    "typescript": "^5.1.0"
+  }
+}

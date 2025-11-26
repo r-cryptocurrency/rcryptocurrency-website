@@ -1,0 +1,10 @@
+{
+  "extends": "@rcryptocurrency/tsconfig/base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "types": ["node"],
+    "lib": ["es2019"]
+  },
+  "include": ["src/**/*"]
+}

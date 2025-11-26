@@ -1,0 +1,32 @@
+{
+  "name": "web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@rcryptocurrency/database": "workspace:*",
+    "@rcryptocurrency/ui": "workspace:*",
+    "@tremor/react": "^3.6.0",
+    "next": "13.4.1",
+    "next-themes": "^0.4.6",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@headlessui/tailwindcss": "^0.2.2",
+    "@rcryptocurrency/tsconfig": "workspace:*",
+    "@tailwindcss/forms": "^0.5.10",
+    "@types/node": "^18.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.23",
+    "tailwindcss": "^3.3.2",
+    "typescript": "^5.1.0"
+  }
+}

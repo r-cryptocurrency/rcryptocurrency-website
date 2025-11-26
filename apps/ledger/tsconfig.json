@@ -1,0 +1,11 @@
+{
+  "extends": "@rcryptocurrency/tsconfig/base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "target": "ES2020",
+    // "rootDir": "src", // Removed to allow scripts/ inclusion
+    "lib": ["esnext"]
+  },
+  "include": ["src/**/*", "scripts/**/*"],
+  "exclude": ["node_modules"]
+}

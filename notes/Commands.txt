@@ -1,0 +1,36 @@
+Commands
+
+#get to scripts 
+cd C:\Users\ghama\OneDrive\Desktop\Documents\Crypto\r-cryptocurrency\rcc-scripts
+
+py -3.11 -m venv venv
+
+.\venv\Scripts\activate
+
+python -m pip install --upgrade pip
+
+python -m pip install -r requirements.txt
+
+python -m pip uninstall -y regex
+python -m pip install regex==2023.8.8
+
+python -c "import nltk; nltk.download('vader_lexicon')"
+
+#Run user dashboard
+python -m streamlit run moon_dashboard.py
+
+#Run project dashboard
+streamlit run project_dashboard.py --server.port 8502
+
+
+#scaper
+python ccmoon_scraper.py
+
+import sqlite3
+conn = sqlite3.connect("moon_data.db")
+cur = conn.cursor()
+cur.execute("PRAGMA table_info(reddit_activity);")
+rows = cur.fetchall()
+for row in rows:
+    print(row)
+conn.close()

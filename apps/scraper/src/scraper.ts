@@ -1,0 +1,135 @@
+import axios from 'axios';
+import { prisma } from '@rcryptocurrency/database';
+import { analyzeSentiment, findProjectMentions } from './analyzer';
+
+const USER_AGENT = 'Reddit-Scraper/1.0 (by /u/TheMoonDistributor)';
+const SUBREDDIT = 'CryptoCurrency';
+const DELAY_MS = 2000;
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function upsertWithRetry(operation: () => Promise<any>, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      if (i === retries - 1) throw error;
+      if (error?.code === 'P2024' || error?.message?.includes('Timed out')) {
+        console.log(`Database timeout, retrying (${i + 1}/${retries})...`);
+        await delay(1000 * (i + 1));
+        continue;
+      }
+      throw error;
+    }
+  }
+}
+
+export async function runScraper(sortType: 'new' | 'hot' | 'top' = 'new') {
+  console.log(`Scraping r/${SUBREDDIT} (${sortType}) via public JSON...`);
+  
+  try {
+    // Construct URL based on sort type
+    let url = `https://www.reddit.com/r/${SUBREDDIT}/${sortType}.json?limit=50`;
+    if (sortType === 'top') {
+      url += '&t=day'; // Top posts of the day
+    }
+
+    const response = await axios.get(url, {
+      headers: { 'User-Agent': USER_AGENT }
+    });
+
+    const posts = response.data.data.children;
+
+    for (const item of posts) {
+      const post = item.data;
+      
+      // Process Post
+      const sentiment = analyzeSentiment(post.title + ' ' + (post.selftext || ''));
+      const mentions = findProjectMentions(post.title + ' ' + (post.selftext || ''));
+
+      try {
+        await upsertWithRetry(() => prisma.redditPost.upsert({
+          where: { id: post.id },
+          update: {
+            score: post.score,
+            numComments: post.num_comments,
+            updatedAt: new Date(),
+          },
+          create: {
+            id: post.id,
+            title: post.title,
+            author: post.author,
+            score: post.score,
+            url: post.url,
+            createdUtc: new Date(post.created_utc * 1000),
+            selftext: post.selftext || '',
+            flair: post.link_flair_text,
+            numComments: post.num_comments,
+            sentiment: sentiment,
+            mentions: {
+              create: mentions.map(m => ({
+                projectId: m,
+                sentiment: sentiment
+              }))
+            }
+          }
+        }));
+      } catch (err: any) {
+        console.error(`Failed to upsert post ${post.id}:`, err.message);
+        continue; // Skip to next post if this one fails
+      }
+
+      // Fetch Comments
+      try {
+        await delay(DELAY_MS); // Respect rate limits
+        const commentsUrl = `https://www.reddit.com/comments/${post.id}.json`;
+        const commentRes = await axios.get(commentsUrl, {
+          headers: { 'User-Agent': USER_AGENT }
+        });
+
+        const comments = commentRes.data[1]?.data?.children || [];
+
+        for (const cItem of comments) {
+          if (cItem.kind === 'more') continue;
+          const comment = cItem.data;
+
+          const cSentiment = analyzeSentiment(comment.body);
+          const cMentions = findProjectMentions(comment.body);
+
+          await upsertWithRetry(() => prisma.redditComment.upsert({
+            where: { id: comment.id },
+            update: {
+              score: comment.score,
+              updatedAt: new Date()
+            },
+            create: {
+              id: comment.id,
+              post: { connect: { id: post.id } },
+              author: comment.author,
+              body: comment.body,
+              score: comment.score,
+              createdUtc: new Date(comment.created_utc * 1000),
+              sentiment: cSentiment,
+              mentions: {
+                create: cMentions.map(m => ({
+                  projectId: m,
+                  sentiment: cSentiment
+                }))
+              }
+            }
+          }));
+          
+          await delay(100); // Small delay to ease DB load
+        }
+      } catch (err: any) {
+        console.error(`Error fetching comments for ${post.id}:`, err.message);
+      }
+    }
+    console.log(`Scraping complete. Processed ${posts.length} posts.`);
+  } catch (error) {
+    console.error('Scraping failed:', error);
+    if (axios.isAxiosError(error) && error.response?.status === 429) {
+      console.log('Rate limited. Waiting before retry...');
+    }
+  }
+}

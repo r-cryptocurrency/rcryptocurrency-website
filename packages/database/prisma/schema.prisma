@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// BLOCKCHAIN DOMAIN
+
+model Holder {
+  address      String   @id
+  balanceNova  Float    @default(0) // Arb Nova balance
+  balanceOne   Float    @default(0) // Arb One balance
+  balanceEth   Float    @default(0) // Ethereum balance
+  totalBalance Float    @default(0) // Aggregate for Richlist sorting
+  lastUpdated  DateTime @updatedAt
+  
+  lastTransferAt DateTime? // Timestamp of the last transfer (in or out)
+  hasOutgoing    Boolean   @default(false) // Whether the address has ever sent tokens out
+
+  label        String?  // e.g. "Kraken", "Bridge"
+  username     String?
+  user         RedditUser? @relation(fields: [username], references: [username])
+
+  @@index([totalBalance])
+}
+
+model LiquiditySnapshot {
+  id        Int      @id @default(autoincrement())
+  timestamp DateTime @default(now())
+  chain     String
+  dex       String   // "Sushi", "Camelot", "RCPSwap"
+  tvlUsd    Float
+  moonCount Float
+  ethCount  Float
+}
+
+// SOCIAL DOMAIN
+
+model RedditUser {
+  username        String   @id
+  rawUpvotes      Int      @default(0)
+  estimatedKarma  Float    @default(0) // After dynamic multiplier
+  earnedMoons     Float    @default(0) // Total Moons earned from distributions
+  lastScraped     DateTime @updatedAt
+  
+  submissions     Submission[]
+  holders         Holder[]
+}
+
+model MarketStat {
+  id        Int      @id @default(autoincrement())
+  timestamp DateTime @default(now())
+  priceUsd  Float
+  marketCap Float
+  volume24h Float
+  change24h Float
+  redditSubscribers Int @default(0)
+  activeUsers       Int @default(0)
+}
+
+model Submission {
+  id          String     @id
+  authorName  String
+  author      RedditUser @relation(fields: [authorName], references: [username])
+  title       String?
+  subreddit   String
+  score       Int
+  isComment   Boolean
+  createdAt   DateTime
+  
+  @@index([authorName])
+  @@index([createdAt])
+}
+
+model RedditPost {
+  id          String   @id
+  title       String
+  author      String
+  score       Int
+  url         String
+  createdUtc  DateTime
+  selftext    String?
+  flair       String?
+  numComments Int
+  
+  sentiment   Float?   // Compound sentiment score
+  
+  mentions    ProjectMention[]
+  comments    RedditComment[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model RedditComment {
+  id          String   @id
+  postId      String
+  post        RedditPost @relation(fields: [postId], references: [id])
+  author      String
+  body        String
+  score       Int
+  createdUtc  DateTime
+  
+  sentiment   Float?
+  
+  mentions    ProjectMention[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ProjectMention {
+  id          Int      @id @default(autoincrement())
+  projectId   String   // e.g., "BTC", "ETH"
+  postId      String?
+  post        RedditPost? @relation(fields: [postId], references: [id])
+  commentId   String?
+  comment     RedditComment? @relation(fields: [commentId], references: [id])
+  
+  sentiment   Float?   // Sentiment of the specific context
+  
+  createdAt   DateTime @default(now())
+}
+
+model MoonEpoch {
+  id          Int      @id
+  startDate   DateTime
+  endDate     DateTime
+  snapshotDate DateTime?
+  distributionDate DateTime?
+}

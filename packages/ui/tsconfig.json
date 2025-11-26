@@ -1,0 +1,5 @@
+{
+  "extends": "@rcryptocurrency/tsconfig/nextjs.json",
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}

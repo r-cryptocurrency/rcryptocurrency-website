@@ -1,0 +1,10 @@
+numpy==1.26.4
+pandas
+streamlit==1.32.0
+praw
+nltk
+beautifulsoup4
+requests
+python-dotenv
+tqdm
+lxml
