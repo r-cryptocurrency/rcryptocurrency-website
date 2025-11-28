@@ -14,11 +14,13 @@ export const BRIDGE_CONTRACTS = {
 
 export const LIQUIDITY_POOLS = {
   nova: {
-    sushiSwapV2: "0x04860B1B394c42d9234600BA297863698C6B8475", // MOON/ETH
+    sushiSwapV2: "0xd6c821b282531868721b41badca1f1ce471f43c5", // MOON/ETH
     rcpSwap: "0x722E8BDD2CE80A4422E880164F2079488E115365"
   },
   one: {
-    camelot: "0x...", // Needs dynamic resolution or factory lookup
+    camelotV3: "0x5e27a422ec06a57567a843fd65a1bbb06ac19fc0", // MOON/ETH
+    uniswapV3: "0x285b461B3d233ab24C665E9FbAF5B96352E3ED07", // MOON/USDC
+    uniswapV4Manager: "0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32"
   }
 } as const;
 

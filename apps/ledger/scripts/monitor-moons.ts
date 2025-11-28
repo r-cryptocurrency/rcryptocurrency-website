@@ -1,6 +1,6 @@
 import { createPublicClient, http, parseAbiItem, formatUnits } from 'viem';
 import { arbitrum, mainnet } from 'viem/chains';
-import { MOON_CONTRACTS } from '@rcryptocurrency/chain-data';
+import { MOON_CONTRACTS, LIQUIDITY_POOLS } from '@rcryptocurrency/chain-data';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
@@ -54,21 +54,21 @@ const SWAP_V4_EVENT = parseAbiItem('event Swap(bytes32 indexed id, address index
 // --- Pool Configurations ---
 const POOLS = {
   NOVA_SUSHI_V2: {
-    address: '0xd6c821b282531868721b41badca1f1ce471f43c5',
+    address: LIQUIDITY_POOLS.nova.sushiSwapV2,
     type: 'V2',
     name: 'SushiSwap V2 (Nova)',
     token0: { symbol: 'MOON', decimals: 18 },
     token1: { symbol: 'ETH', decimals: 18 }
   },
   ONE_CAMELOT_V3: {
-    address: '0x5e27a422ec06a57567a843fd65a1bbb06ac19fc0',
+    address: LIQUIDITY_POOLS.one.camelotV3,
     type: 'V3',
     name: 'Camelot V3 (One)',
     token0: { symbol: 'MOON', decimals: 18 },
     token1: { symbol: 'ETH', decimals: 18 }
   },
   ONE_UNI_V3: {
-    address: '0x285b461B3d233ab24C665E9FbAF5B96352E3ED07',
+    address: LIQUIDITY_POOLS.one.uniswapV3,
     type: 'V3',
     name: 'Uniswap V3 (One)',
     token0: { symbol: 'MOON', decimals: 18 },
@@ -77,7 +77,7 @@ const POOLS = {
   // V4 Pools are identified by ID, but we need the PoolManager address.
   // Retrieved from Universal Router (0xA51...) on Arbitrum One.
   ONE_POOL_MANAGER: {
-    address: '0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32',
+    address: LIQUIDITY_POOLS.one.uniswapV4Manager,
     type: 'V4_MANAGER',
     name: 'Uniswap V4 Manager (One)',
     pools: {

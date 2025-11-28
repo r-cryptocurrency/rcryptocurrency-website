@@ -84,8 +84,8 @@ export default async function ScraperPage({ searchParams }: { searchParams: { ra
             </div>
 
             {/* Sentiment Overview Chart */}
-            <div className="bg-white/80 dark:bg-black/20 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden border border-orange-100 dark:border-white/10">
-              <div className="bg-orange-100/50 dark:bg-white/5 px-6 py-4 border-b border-orange-100 dark:border-white/10 flex justify-between items-center">
+            <div className="bg-white/80 dark:bg-black/20 backdrop-blur-sm rounded-xl shadow-lg border border-orange-100 dark:border-white/10">
+              <div className="relative z-20 bg-orange-100/50 dark:bg-white/5 px-6 py-4 border-b border-orange-100 dark:border-white/10 flex justify-between items-center rounded-t-xl">
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl font-bold text-slate-800 dark:text-white m-0">Sentiment Trend</h2>
                   <SentimentInfo />

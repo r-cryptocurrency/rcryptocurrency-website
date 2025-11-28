@@ -114,15 +114,17 @@ export default async function SwapPage({ searchParams }: { searchParams: { page?
                 <TableBody>
                   {swaps.map((swap) => (
                     <TableRow key={swap.id}>
-                      <TableCell className="dark:text-slate-300">{new Date(swap.timestamp).toLocaleTimeString()}</TableCell>
-                      <TableCell>
-                        <Badge size="xs" color="slate">{swap.dex}</Badge>
+                    <TableCell className="dark:text-slate-300">{new Date(swap.timestamp).toLocaleTimeString()}</TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+                        {swap.dex}
+                      </span>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm dark:text-slate-300">
+                        {swap.amountIn.toLocaleString(undefined, { maximumFractionDigits: ['ETH', 'WETH'].includes(swap.tokenIn) ? 5 : 2 })} {swap.tokenIn}
                       </TableCell>
                       <TableCell className="font-mono text-sm dark:text-slate-300">
-                        {swap.amountIn.toLocaleString(undefined, { maximumFractionDigits: 2 })} {swap.tokenIn}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm dark:text-slate-300">
-                        {swap.amountOut.toLocaleString(undefined, { maximumFractionDigits: 2 })} {swap.tokenOut}
+                        {swap.amountOut.toLocaleString(undefined, { maximumFractionDigits: ['ETH', 'WETH'].includes(swap.tokenOut) ? 5 : 2 })} {swap.tokenOut}
                       </TableCell>
                       <TableCell>
                         <a 
