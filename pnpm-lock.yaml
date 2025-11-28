@@ -125,6 +125,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@heroicons/react':
+        specifier: ^2.2.0
+        version: 2.2.0(react@18.2.0)
       '@rcryptocurrency/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -413,6 +416,14 @@ packages:
     dependencies:
       tailwindcss: 3.3.2
     dev: true
+
+  /@heroicons/react@2.2.0(react@18.2.0):
+    resolution: {integrity: sha512-LMcepvRaS9LYHJGsF0zzmgKCUim/X3N/DQKc4jepAXJ7l8QxJ1PmxJzqplF2Z3FE4PqBAIGyJAQ/w4B5dsqbtQ==}
+    peerDependencies:
+      react: '>= 16 || ^19.0.0-rc'
+    dependencies:
+      react: 18.2.0
+    dev: false
 
   /@humanwhocodes/config-array@0.11.14:
     resolution: {integrity: sha512-3T8LkOmg45BV5FICb15QQMsyUSWrQ8AygVfC7ZG32zOalnqrilm018ZVCw0eapXux8FtA33q8PSRSstjee3jSg==}

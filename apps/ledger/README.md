@@ -7,15 +7,43 @@ A blockchain indexer built with `viem` to track MOON token transfers across mult
 - **Arbitrum One** (Bridged MOONs via Celer): `0x24404dc041d74cd03cfe28855f555559390c931b`
 - **Ethereum Mainnet** (L1 MOONs): `0xb2490e357980ce57bf5745e181e537a64eb367b1`
 
+## Configuration
+
+Configuration is handled via the **root** `.env` file.
+*   **RPC URLs**: `RPC_URL_NOVA`, `RPC_URL_ONE`, `RPC_URL_ETH`
+*   **Telegram**: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHANNEL_ID` (for Monitor)
+*   **Monitoring**: `MOON_NOTIFICATION_THRESHOLD` (Minimum MOON amount to trigger a notification)
+
+## Monitored Contracts
+
+### Tokens
+- **Arbitrum Nova**: `0x0057ac2d777797d31cd3f8f13bf5e927571d6ad0`
+- **Arbitrum One**: `0x24404dc041d74cd03cfe28855f555559390c931b`
+- **Ethereum Mainnet**: `0xb2490e357980ce57bf5745e181e537a64eb367b1`
+
+### DEX Pools (Arbitrum One)
+The `monitor-moons` script watches these pools for large swaps:
+*   **Camelot V3**: `0x5e27a422ec06a57567a843fd65a1bbb06ac19fc0`
+*   **Uniswap V3**: `0x285b461B3d233ab24C665E9FbAF5B96352E3ED07`
+*   **Uniswap V4**:
+    *   **Universal Router**: `0xA51afAFe0263b40EdaEf0Df8781eA9aa03E381a3`
+    *   **PoolManager**: `0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32`
+    *   **Pool (MOON/USDC)**: `0x065144c11d71d908594e6305b7ae834d00443374f87cc82692fbac8ed81af56a`
+    *   **Pool (MOON/ETH)**: `0xa14aaa23a3b1ae4b0bdc031151c6814f1d06a901ffc5f8ab6951c75de2bc2c17`
+
+### DEX Pools (Arbitrum Nova)
+*   **SushiSwap V2**: `0xd6c821b282531868721b41badca1f1ce471f43c5`
+
 ## How it Works
 1.  Connects to RPC endpoints for each chain.
 2.  Listens for `Transfer` events on the MOON contract addresses.
-3.  Updates the `Holder` table in the shared SQLite database.
+3.  Updates the `Holder` table in the shared PostgreSQL database.
 4.  Aggregates balances to calculate a `totalBalance` for the Richlist.
+5.  **Monitor Script**: Listens for `Transfer` to the Burn address and `Swap` events on DEX pools, sending Telegram alerts and persisting events to the `Burn` and `Swap` tables.
 
 ## Database Schema
 
-The Ledger app primarily interacts with the `Holder` table in the shared SQLite database.
+The Ledger app interacts with the following tables in the shared PostgreSQL database:
 
 ### `Holder` Table
 | Column | Type | Description |
@@ -24,27 +52,87 @@ The Ledger app primarily interacts with the `Holder` table in the shared SQLite 
 | `balanceNova` | Float | Balance on Arbitrum Nova. |
 | `balanceOne` | Float | Balance on Arbitrum One. |
 | `balanceEth` | Float | Balance on Ethereum Mainnet. |
-| `totalBalance` | Float | Sum of all balances (used for sorting). |
-| `lastTransferAt` | DateTime? | Timestamp of the last outgoing/incoming transfer. |
-| `hasOutgoing` | Boolean | True if the address has ever sent tokens. |
-| `label` | String? | Optional label (e.g., "Kraken", "Bridge"). |
-| `username` | String? | Linked Reddit username (from historical data). |
-| `lastUpdated` | DateTime | When the record was last modified. |
+| `totalBalance` | Float | Aggregate balance. |
 
-## Configuration
-Create a `.env` file if you need custom RPCs (copy from `.env.example`):
+### `Burn` Table
+| Column | Type | Description |
+|--------|------|-------------|
+| `txHash` | String (Unique) | Transaction hash. |
+| `amount` | Float | Amount of MOONs burned. |
+| `chain` | String | Chain where burn occurred. |
+| `sender` | String | Address that initiated the burn. |
 
-```env
-RPC_URL_NOVA=https://nova.arbitrum.io/rpc
-RPC_URL_ONE=https://arb1.arbitrum.io/rpc
-RPC_URL_ETH=https://eth.llamarpc.com
+### `Swap` Table
+| Column | Type | Description |
+|--------|------|-------------|
+| `txHash` | String (Unique) | Transaction hash. |
+| `dex` | String | DEX Name (e.g., "Uniswap V3"). |
+| `amountIn` | Float | Amount of tokens sold. |
+| `amountOut` | Float | Amount of tokens bought. |
+| `tokenIn` | String | Symbol of token sold. |
+| `tokenOut` | String | Symbol of token bought. |
+
+## Scripts
+
+### `monitor-moons`
+The primary monitoring script.
+```bash
+pnpm monitor-moons
+```
+*   Watches for Burns on all chains.
+*   Watches for Swaps on SushiSwap (Nova), Camelot (One), Uniswap V3 (One), and Uniswap V4 (One).
+*   Sends Telegram alerts for events > `MOON_NOTIFICATION_THRESHOLD`.
+*   Saves events to the database.
+
+### `seed-labels`
+Seeds known exchange and bridge addresses.
+```bash
+pnpm seed:labels
 ```
 
-## Development
+### `refresh-balances`
+Manually refreshes balances for all holders in the database.
+*   Fetches current balances from RPC for all known addresses.
+*   **Historical Burns**: Scans the blockchain for past transfers to the Burn Address (`0x...dEaD`) and populates the `Burn` table. This is useful for backfilling data that the live monitor might have missed or for initial setup.
+*   **Activity Tracking**: Updates "Last Active" timestamps by scanning recent blocks.
 
 ```bash
-pnpm dev --filter=ledger
+pnpm refresh-balances
 ```
+
+### `ingest`
+Parses the historical CSV file (`MoonDistributions.csv`) to map Reddit usernames to blockchain addresses.
+
+```bash
+pnpm ingest
+```
+
+## Recommended Setup Workflow
+
+
+To completely rebuild the ledger from scratch:
+
+1.  **Reset Database**:
+    ```bash
+    rm packages/database/prisma/dev.db
+    pnpm db:push
+    ```
+
+2.  **Seed Labels**:
+    ```bash
+    pnpm --filter ledger seed:labels
+    ```
+
+3.  **Ingest User Mappings**:
+    ```bash
+    pnpm --filter ledger ingest
+    ```
+
+4.  **Sync Balances & History**:
+    ```bash
+    pnpm --filter ledger refresh-balances
+    ```
+    *Note: This step can take several hours as it scans millions of blocks on Arbitrum Nova.*
 
 ## Data Gathering Strategy
 

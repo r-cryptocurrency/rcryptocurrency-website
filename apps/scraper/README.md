@@ -7,6 +7,9 @@ A service that scrapes r/CryptoCurrency for sentiment analysis and project menti
 - **Sentiment Analysis**: Uses `natural` (NLP library) to score post titles and comments.
 - **Mention Tracking**: Identifies mentions of BTC, ETH, MOON, and other top projects.
 
+## Configuration
+Configuration is handled via the **root** `.env` file. Currently, no specific environment variables are required for the scraper, but it shares the database configuration.
+
 ## Schedule
 The scraper runs 4 times per hour to capture both breaking news and trending discussions:
 - **00:00**: Scrapes `new` posts (Catch breaking news).
@@ -19,7 +22,7 @@ The scraper runs 4 times per hour to capture both breaking news and trending dis
 2.  Upserts `Submission` and `RedditUser` records in the database.
 3.  Fetches comments for each new post.
 4.  Analyzes text and stores `RedditComment` and `Mention` records.
-5.  **Robustness**: Implements retry logic with exponential backoff to handle SQLite database locks and concurrency issues.
+5.  **Robustness**: Implements retry logic with exponential backoff to handle database concurrency issues.
 
 ## Database Schema
 

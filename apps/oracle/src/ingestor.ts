@@ -2,8 +2,9 @@ import axios from 'axios';
 import { prisma } from '@rcryptocurrency/database';
 import { CronJob } from 'cron';
 import dotenv from 'dotenv';
+import path from 'path';
 
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 async function fetchNewActivity() {
   console.log('Polling r/CryptoCurrency via Public JSON...');

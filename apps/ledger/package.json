@@ -11,6 +11,8 @@
     "seed:labels": "ts-node scripts/seed-labels.ts",
     "cleanup": "ts-node scripts/cleanup-duplicates.ts",
     "refresh-balances": "ts-node scripts/refresh-balances.ts",
+    "monitor-moons": "ts-node scripts/monitor-moons.ts",
+    "monitor": "pnpm monitor-moons",
     "ingest": "ts-node src/ingest-csv.ts"
   },
   "dependencies": {

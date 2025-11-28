@@ -28,4 +28,14 @@ new CronJob('45 * * * *', async () => {
 }).start();
 
 // Run immediately on startup
-runScraper('new');
+(async () => {
+  console.log('Running initial scrape (NEW & TOP)...');
+  try {
+    await runScraper('new');
+    console.log('Initial NEW scrape complete. Starting TOP...');
+    await runScraper('top');
+    console.log('Initial TOP scrape complete.');
+  } catch (e) {
+    console.error('Error during initial scrape:', e);
+  }
+})();

@@ -12,3 +12,33 @@
     50% { transform: translateY(-20px) rotate(10deg); }
   }
 }
+
+/* Force Tremor inputs to be dark in dark mode */
+.dark .tremor-TextInput-root input,
+.dark .tremor-Select-root button,
+.dark .tremor-Select-root [role="button"] {
+  background-color: #020617 !important; /* slate-950 */
+  color: white !important;
+  border-color: #1e293b !important; /* slate-800 */
+}
+
+.dark .tremor-TextInput-root input::placeholder {
+  color: #64748b !important; /* slate-500 */
+}
+
+/* Ensure dropdown menu is also dark */
+.dark .tremor-Select-root ul,
+.dark .tremor-Select-root [role="listbox"] {
+  background-color: #020617 !important;
+  border-color: #1e293b !important;
+}
+
+.dark .tremor-Select-root li,
+.dark .tremor-Select-root [role="option"] {
+  color: white !important;
+}
+
+.dark .tremor-Select-root li:hover,
+.dark .tremor-Select-root [role="option"]:hover {
+  background-color: #1e293b !important;
+}

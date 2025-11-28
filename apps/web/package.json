@@ -3,12 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "mkdir -p prisma && cp ../../packages/database/prisma/schema.prisma ./prisma/schema.prisma && next dev",
+    "build": "mkdir -p prisma && cp ../../packages/database/prisma/schema.prisma ./prisma/schema.prisma && next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@rcryptocurrency/database": "workspace:*",
     "@rcryptocurrency/ui": "workspace:*",
     "@tremor/react": "^3.6.0",

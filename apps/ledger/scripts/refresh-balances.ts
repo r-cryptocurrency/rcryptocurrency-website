@@ -3,8 +3,10 @@ import { arbitrum, mainnet } from 'viem/chains';
 import { MOON_CONTRACTS } from '@rcryptocurrency/chain-data';
 import { prisma } from '@rcryptocurrency/database';
 import * as dotenv from 'dotenv';
+import * as path from 'path';
 
-dotenv.config();
+// Load .env from project root
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 // Define Arbitrum Nova manually
 const arbitrumNova = {
@@ -90,6 +92,38 @@ async function getActivity(client: any, contract: string, address: string) {
       return Number(b.logIndex) - Number(a.logIndex);
     });
 
+    // Check for burns (transfers to 0x0...dead)
+    const BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
+    const burns = logsIn.filter((log: any) => 
+      log.args.to?.toLowerCase() === BURN_ADDRESS.toLowerCase()
+    );
+
+    if (burns.length > 0) {
+      console.log(`Found ${burns.length} historical burns for ${address}`);
+      for (const burn of burns) {
+        const txHash = burn.transactionHash;
+        const block = await client.getBlock({ blockNumber: burn.blockNumber });
+        const timestamp = new Date(Number(block.timestamp) * 1000);
+        const amount = Number(burn.args.value) / 1e18;
+        const from = burn.args.from;
+
+        // Upsert burn record
+        await prisma.burn.upsert({
+          where: { txHash },
+          update: {},
+          create: {
+            txHash,
+            blockNumber: Number(burn.blockNumber),
+            timestamp,
+            sender: from || address,
+            amount,
+            chain: contract === MOON_CONTRACTS.arbitrumNova ? 'arbitrum_nova' : 
+                   contract === MOON_CONTRACTS.arbitrumOne ? 'arbitrum_one' : 'ethereum'
+          }
+        });
+      }
+    }
+
     let lastTransferAt: Date | null = null;
     if (allLogs.length > 0) {
       const lastLog = allLogs[0];
@@ -108,7 +142,129 @@ async function getActivity(client: any, contract: string, address: string) {
   }
 }
 
+const DISTRIBUTORS = [
+  '0x0000000000000000000000000000000000000000',
+  '0xda9338361d1CFAB5813a92697c3f0c0c42368FB3'
+];
+
+async function updateEarnedMoons() {
+  console.log('Calculating Earned Moons from Distributor transfers...');
+  const earnedMap = new Map<string, number>(); // Address -> Amount
+  let totalTransfersFound = 0;
+
+  const currentBlock = await novaClient.getBlockNumber();
+  
+  for (const distributor of DISTRIBUTORS) {
+    console.log(`Fetching transfers from ${distributor}...`);
+    let fromBlock = 0n;
+    let chunkSize = 10000n; // Start with 10k blocks
+    
+    while (fromBlock < currentBlock) {
+      const toBlock = fromBlock + chunkSize > currentBlock ? currentBlock : fromBlock + chunkSize;
+      
+      try {
+        const logs = await novaClient.getLogs({
+          address: MOON_CONTRACTS.arbitrumNova as `0x${string}`,
+          event: TRANSFER_EVENT,
+          args: { from: distributor as `0x${string}` },
+          fromBlock,
+          toBlock
+        });
+
+        for (const log of logs) {
+          const to = log.args.to?.toLowerCase();
+          const value = Number(log.args.value) / 1e18;
+          if (to && value > 0) {
+            const current = earnedMap.get(to) || 0;
+            earnedMap.set(to, current + value);
+          }
+        }
+        
+        totalTransfersFound += logs.length;
+        process.stdout.write(`\rScanned blocks ${fromBlock} - ${toBlock}. Found ${logs.length} transfers (Total: ${totalTransfersFound}). (Chunk: ${chunkSize})`);
+        
+        // If we got a lot of logs, maybe decrease chunk size to be safe, or keep it if it worked.
+        // If we got very few logs, we could increase, but let's be safe.
+        // Add a small delay to avoid rate limits
+        await new Promise(r => setTimeout(r, 500));
+        fromBlock = toBlock + 1n;
+
+      } catch (e: any) {
+        const errorMsg = e?.message || JSON.stringify(e);
+        const isRateLimit = errorMsg.includes('429') || errorMsg.includes('Too Many Requests');
+        const isRpcLimit = errorMsg.includes('limit') || errorMsg.includes('timeout') || errorMsg.includes('RPC Request failed');
+
+        if (isRateLimit) {
+           // Rate limit hit: Wait and retry same block range
+           // Do not reduce chunk size further, as that increases request count
+           process.stdout.write(`\nRate limit (429). Pausing 10s...`);
+           await new Promise(r => setTimeout(r, 10000));
+        } else if (isRpcLimit) {
+          // Reduce chunk size and retry
+          const newChunkSize = chunkSize / 2n;
+          if (newChunkSize < 100n) {
+             // If chunk size gets too small, we might be stuck or just hitting limits. 
+             // Try to skip or just wait longer.
+             console.error(`\nStuck on block ${fromBlock} with small chunk. Skipping range.`);
+             fromBlock = toBlock + 1n;
+             chunkSize = 5000n; // Reset to reasonable size
+          } else {
+             chunkSize = newChunkSize;
+          }
+        } else {
+          console.error(`\nError fetching logs for ${distributor} at block ${fromBlock}:`, e);
+          await new Promise(r => setTimeout(r, 2000));
+          fromBlock = toBlock + 1n; // Skip if unknown error to avoid infinite loop
+        }
+      }
+    }
+    console.log('\n');
+  }
+
+  console.log(`Found ${earnedMap.size} addresses with earned Moons.`);
+  
+  // Now update users
+  const holders = await prisma.holder.findMany({
+    where: { username: { not: null } },
+    select: { address: true, username: true }
+  });
+
+  const userEarned = new Map<string, number>(); // Username -> Total
+
+  for (const holder of holders) {
+    const address = holder.address.toLowerCase();
+    const earned = earnedMap.get(address);
+    if (earned) {
+      const username = holder.username!; 
+      const current = userEarned.get(username) || 0;
+      userEarned.set(username, current + earned);
+    }
+  }
+
+  console.log(`Mapped earned Moons to ${userEarned.size} users. Updating DB...`);
+  
+  const updates = Array.from(userEarned.entries());
+  const BATCH = 500;
+  
+  for (let i = 0; i < updates.length; i += BATCH) {
+    const batch = updates.slice(i, i + BATCH);
+    await prisma.$transaction(
+      batch.map(([username, amount]) => 
+        prisma.redditUser.update({
+          where: { username },
+          data: { earnedMoons: amount }
+        })
+      )
+    );
+    process.stdout.write(`\rUpdated ${Math.min(i + BATCH, updates.length)}/${updates.length} users.`);
+  }
+  console.log('\nEarned Moons update complete.');
+}
+
 async function main() {
+  // Run the earned moons calculation first
+  await updateEarnedMoons();
+
   console.log("Fetching all addresses (this may take a while)...");
   const holders = await prisma.holder.findMany({
     // Fetch everyone, not just labeled ones

@@ -94,12 +94,18 @@ export default async function Home() {
                 </div>
               </div>
 
-              <div className="flex gap-4 justify-center lg:justify-start">
-                <a href="/richlist" className="inline-block bg-rcc-orange hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
-                  View Richlist
+              <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
+                <a href="https://www.reddit.com/r/CryptoCurrency/" target="_blank" rel="noopener noreferrer" className="inline-block bg-rcc-orange hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
+                  Subreddit
                 </a>
-                <a href="/stats" className="inline-block bg-transparent border-2 border-rcc-orange text-rcc-orange hover:bg-rcc-orange hover:text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105">
-                  Subreddit Stats
+                <a href="/richlist" className="inline-block bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
+                  Richlist
+                </a>
+                <a href="/scraper" className="inline-block bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
+                  Stats
+                </a>
+                <a href="/swap" className="inline-block bg-pink-600 hover:bg-pink-500 text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
+                  Swap
                 </a>
               </div>
             </div>

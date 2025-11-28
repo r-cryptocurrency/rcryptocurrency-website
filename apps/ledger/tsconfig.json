@@ -4,7 +4,7 @@
     "outDir": "dist",
     "target": "ES2020",
     // "rootDir": "src", // Removed to allow scripts/ inclusion
-    "lib": ["esnext"]
+    "lib": ["esnext", "dom"]
   },
   "include": ["src/**/*", "scripts/**/*"],
   "exclude": ["node_modules"]

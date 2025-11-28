@@ -6,7 +6,7 @@ The user-facing frontend for the r/CryptoCurrency ecosystem.
 - **Framework**: Next.js 13 (App Router)
 - **Styling**: Tailwind CSS
 - **Components**: Tremor (Charts, Cards, Metrics)
-- **Database**: Prisma Client (via `@rcryptocurrency/database`)
+- **Database**: Prisma Client (PostgreSQL via `@rcryptocurrency/database`)
 
 ## Features
 - **Home Page**: Real-time MOON price, market cap, volume stats, and subreddit subscriber counts. Includes a timeline of MOON history.
@@ -16,6 +16,13 @@ The user-facing frontend for the r/CryptoCurrency ecosystem.
   - **Sorting**: Sort by Total Balance, Chain Balance, Earned Moons, or Last Active Date.
   - **Activity Tracking**: Shows the last time an address sent a transaction.
   - **Labels**: Identifies known exchange and bridge addresses.
+- **Burns**:
+  - Real-time feed of MOON burn events.
+  - Tracks burns on Arbitrum Nova, Arbitrum One, and Ethereum.
+  - Links to block explorers for verification.
+- **Swaps**:
+  - Embedded Uniswap interface for trading MOONs on Arbitrum One.
+  - Live feed of recent swaps across supported DEXs (Uniswap V3/V4, Camelot, SushiSwap).
 - **Scraper Data**: Visualization of Reddit sentiment and project mentions.
 - **Theming**: 
   - Built-in Dark/Light mode toggle.
@@ -23,7 +30,7 @@ The user-facing frontend for the r/CryptoCurrency ecosystem.
   - Glassmorphism card effects.
 
 ## Configuration
-No environment variables are currently required. See `.env.example`.
+Configuration is handled via the **root** `.env` file.
 
 ## Development
 

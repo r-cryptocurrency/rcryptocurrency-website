@@ -2,27 +2,45 @@ import { prisma } from '@rcryptocurrency/database';
 import { Card, Title, Text, BarList, Flex, Grid, Metric } from "@tremor/react";
 import Background from '../../components/Background';
 import SentimentChart from '../stats/SentimentChart';
+import SentimentInfo from './SentimentInfo';
+import Link from 'next/link';
 
 export const revalidate = 60; // Revalidate every minute
 
 
-export default async function ScraperPage() {
+export default async function ScraperPage({ searchParams }: { searchParams: { range?: string } }) {
+  const range = searchParams.range || '24h';
+  
+  let startDate = new Date();
+  if (range === '7d') {
+    startDate.setDate(startDate.getDate() - 7);
+  } else if (range === '30d') {
+    startDate.setDate(startDate.getDate() - 30);
+  } else {
+    // Default 24h
+    startDate.setHours(startDate.getHours() - 24);
+  }
+
   const posts = await prisma.redditPost.findMany({
     orderBy: { createdUtc: 'desc' },
     take: 20,
     include: { mentions: true }
   });
 
-  // Fetch data for sentiment chart (last 50 posts)
+  // Fetch data for sentiment chart based on range
   const sentimentPosts = await prisma.redditPost.findMany({
-    orderBy: { createdUtc: 'asc' }, // Oldest first for chart
-    take: 50,
-    where: { sentiment: { not: null } },
+    orderBy: { createdUtc: 'asc' },
+    where: { 
+      sentiment: { not: null },
+      createdUtc: { gte: startDate }
+    },
     select: { createdUtc: true, sentiment: true, title: true }
   });
 
   const chartData = sentimentPosts.map(p => ({
-    date: new Date(p.createdUtc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    date: range === '24h' 
+      ? new Date(p.createdUtc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : new Date(p.createdUtc).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit' }),
     Sentiment: p.sentiment
   }));
 
@@ -67,8 +85,16 @@ export default async function ScraperPage() {
 
             {/* Sentiment Overview Chart */}
             <div className="bg-white/80 dark:bg-black/20 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden border border-orange-100 dark:border-white/10">
-              <div className="bg-orange-100/50 dark:bg-white/5 px-6 py-4 border-b border-orange-100 dark:border-white/10">
-                <h2 className="text-xl font-bold text-slate-800 dark:text-white m-0">Sentiment Trend</h2>
+              <div className="bg-orange-100/50 dark:bg-white/5 px-6 py-4 border-b border-orange-100 dark:border-white/10 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-slate-800 dark:text-white m-0">Sentiment Trend</h2>
+                  <SentimentInfo />
+                </div>
+                <div className="flex gap-2">
+                  <Link href="/scraper?range=24h" className={`text-xs px-2 py-1 rounded ${range === '24h' ? 'bg-rcc-orange text-white' : 'bg-white/50 dark:bg-white/10 text-slate-600 dark:text-slate-400 hover:bg-rcc-orange/20'}`}>24h</Link>
+                  <Link href="/scraper?range=7d" className={`text-xs px-2 py-1 rounded ${range === '7d' ? 'bg-rcc-orange text-white' : 'bg-white/50 dark:bg-white/10 text-slate-600 dark:text-slate-400 hover:bg-rcc-orange/20'}`}>7d</Link>
+                  <Link href="/scraper?range=30d" className={`text-xs px-2 py-1 rounded ${range === '30d' ? 'bg-rcc-orange text-white' : 'bg-white/50 dark:bg-white/10 text-slate-600 dark:text-slate-400 hover:bg-rcc-orange/20'}`}>30d</Link>
+                </div>
               </div>
               <div className="p-6">
                 <SentimentChart data={chartData} />
@@ -120,7 +146,7 @@ export default async function ScraperPage() {
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {post.mentions.map(m => (
-                            <span key={m.id} className="bg-white dark:bg-slate-800 text-slate-600 dark:text-gray-300 text-xs px-2 py-0.5 rounded border border-orange-100 dark:border-slate-700 shadow-sm">
+                            <span key={m.id} className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs px-2 py-0.5 rounded border border-slate-200 dark:border-slate-600 shadow-sm font-medium">
                               {m.projectId}
                             </span>
                           ))}

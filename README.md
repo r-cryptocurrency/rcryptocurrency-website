@@ -17,7 +17,7 @@ rcryptocurrency-site/
 │   └── scraper/          # Node.js Reddit Scraper (Public JSON + NLP) - [README](./apps/scraper/README.md)
 ├── packages/
 │   ├── chain-data/       # Shared Blockchain Constants (ABIs, Addresses)
-│   ├── database/         # Shared Prisma Schema & Client (SQLite/Postgres) - [README](./packages/database/README.md)
+│   ├── database/         # Shared Prisma Schema & Client (PostgreSQL) - [README](./packages/database/README.md)
 │   ├── ui/               # Shared React Components (Tailwind/Tremor)
 │   ├── tsconfig/         # Shared TypeScript Configs
 │   └── eslint-config/    # Shared Linting Rules
@@ -39,6 +39,8 @@ rcryptocurrency-site/
     *   **Richlist**: Displays top MOON holders with support for address labels (e.g., "Kraken", "Bridge").
     *   **Market Stats**: Real-time MOON price, volume, market cap, and subreddit subscriber counts.
     *   **Timeline**: A history of the MOON token ecosystem.
+    *   **Burns**: Real-time tracking of MOON burns across all chains.
+    *   **Swaps**: Live feed of DEX swaps on Arbitrum One and Nova.
 
 ### 2. Ledger (`apps/ledger`)
 *   **Tech Stack**: Node.js, Viem.
@@ -47,43 +49,8 @@ rcryptocurrency-site/
     *   Listens for `Transfer` events.
     *   Updates user balances in the shared database.
     *   Handles cross-chain balance aggregation.
+    *   **Monitor**: Real-time monitoring of Burns and Swaps (Uniswap V3/V4, Camelot, SushiSwap) with Telegram alerts.
     *   **Management**: Includes scripts to manually label addresses (e.g., Exchanges).
-
-## ⚡ Quick Start
-
-1.  **Install Dependencies**:
-    ```bash
-    pnpm install
-    ```
-
-2.  **Setup Database**:
-    ```bash
-    # Generate Prisma Client and push schema to SQLite
-    pnpm db:push
-    ```
-
-3.  **Seed Data** (Optional but recommended):
-    ```bash
-    # Seed known exchange labels (Kraken, MEXC, etc.)
-    pnpm --filter ledger seed:labels
-    
-    # Ingest historical Reddit distribution data (if CSV is present)
-    pnpm --filter ledger ingest
-    ```
-
-4.  **Run Development Server**:
-    ```bash
-    pnpm dev
-    ```
-    *   Web: http://localhost:3000
-    *   Scraper: Runs in background
-    *   Oracle: Runs in background
-
-5.  **Populate Balances**:
-    ```bash
-    # Fetch live balances from blockchain
-    pnpm --filter ledger refresh-balances
-    ```
 
 ### 3. Oracle (`apps/oracle`)
 *   **Tech Stack**: Node.js, Axios, Cron.
@@ -98,49 +65,160 @@ rcryptocurrency-site/
     *   **Sentiment Analysis**: Analyzes post titles/bodies for positive/negative sentiment.
     *   **Project Mentions**: Tracks mentions of specific coins (BTC, ETH, MOON, etc.).
 
----
-
-## 🛠 Setup & Development
+## ⚡ Quick Start
 
 ### Prerequisites
-*   Node.js >= 18
-*   pnpm (`npm install -g pnpm`)
+*   Node.js 18+
+*   pnpm (`npm i -g pnpm`)
+*   Docker & Docker Compose (for PostgreSQL)
 
-### Installation
+### 1. Installation
+
+```bash
+# Install dependencies
+pnpm install
+```
+
+### 2. Environment Setup
+
+Copy `.env.example` to `.env` in the root directory (or create it manually):
+
+```bash
+# .env
+RPC_URL_NOVA=https://nova.arbitrum.io/rpc
+RPC_URL_ONE=https://arb1.arbitrum.io/rpc
+RPC_URL_ETH=https://eth.llamarpc.com
+
+TELEGRAM_BOT_TOKEN=your_token
+TELEGRAM_CHANNEL_ID=@your_channel
+MOON_NOTIFICATION_THRESHOLD=50
+
+DATABASE_URL="postgresql://rcc_user:rcc_password@localhost:5433/rcc_db"
+```
+
+### 3. Database Setup
+
+See [packages/database/README.md](./packages/database/README.md) for full details.
+
+## 📦 Database Migration & Backup
+
+To migrate your PostgreSQL database to another machine or create a backup, you can use standard PostgreSQL tools (`pg_dump` and `pg_restore`). Since we are using Docker, we execute these commands inside the container.
+
+### Backup (Export)
+Run this command to create a compressed dump of your database:
+
+```bash
+# Replace 'rcryptocurrency-site-db-1' with your actual container name if different
+docker exec -t rcryptocurrency-site-db-1 pg_dump -U rcc_user -d rcc_db -F c > rcc_db_backup.dump
+```
+
+### Restore (Import)
+On the new machine (after starting the docker container):
+
+1.  Copy the backup file to the new machine.
+2.  Run the restore command:
+
+```bash
+# Drop existing data (optional, be careful!)
+# docker exec -i rcryptocurrency-site-db-1 psql -U rcc_user -d rcc_db -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+
+# Restore from dump
+cat rcc_db_backup.dump | docker exec -i rcryptocurrency-site-db-1 pg_restore -U rcc_user -d rcc_db -F c --clean --if-exists
+```
+
+### 4. Seed Data (Optional)
+
+```bash
+# Seed known exchange labels (Kraken, MEXC, etc.)
+pnpm --filter ledger seed:labels
+
+# Ingest historical Reddit distribution data (if CSV is present)
+pnpm --filter ledger ingest
+```
+
+### 5. Run Applications
+
+The system consists of two parts: the core application stack and the standalone monitor.
+
+**1. Run Core Services (Web, Scraper, Oracle, Indexer):**
+```bash
+pnpm dev
+```
+This starts the main application stack:
+*   **Web Dashboard**: http://localhost:3000
+*   **Scraper**: Background service for Reddit data.
+*   **Oracle**: Background service for market stats.
+*   **Ledger Indexer**: Background service for standard balance updates.
+
+**2. Run Moon Monitor (Real-time Alerts & Swaps):**
+The monitor is a standalone process that tracks live Burns and Swaps for the "Burns" and "Swaps" pages. It must be run separately.
+```bash
+pnpm --filter ledger monitor-moons
+```
+
+## 🛠 Operational Guide
+
+### Database Management
+*   **View Data**: `pnpm db:studio` (Opens Prisma Studio in browser)
+*   **Reset DB**: `pnpm db:reset` (Drops and recreates the database)
+*   **Migration**: When changing `schema.prisma`, run `pnpm db:push` to update the database structure.
+
+### Monitoring
+The `monitor-moons` script is critical for the "Burns" and "Swaps" pages. It should be kept running in a background process (e.g., via `pm2` or `systemd`) in production.
+
+```bash
+# Example with PM2
+pm2 start apps/ledger/scripts/monitor-moons.ts --interpreter ./node_modules/.bin/ts-node --name moon-monitor
+```
+
+
+5.  **Populate Balances**:
+    ```bash
+    # Fetch live balances from blockchain
+    pnpm --filter ledger refresh-balances
+    ```
+
+---
+
+## 🛠 Setup & Installation
+
+### Prerequisites
+*   Node.js 18+
+*   pnpm (`npm i -g pnpm`)
+*   Docker & Docker Compose (for PostgreSQL)
+
+### Quick Start
+
 1.  **Install Dependencies**:
     ```bash
     pnpm install
     ```
 
-2.  **Database Setup**:
-    The project currently uses **SQLite** for ease of development.
+2.  **Environment Setup**:
+    *   Copy `.env.example` to `.env` (if available) or ensure `.env` exists in the root.
+    *   Update `RPC_URL_*` and `TELEGRAM_*` variables.
+
+3.  **Database Setup**:
+    *   Start the PostgreSQL container:
+        ```bash
+        sudo docker compose up -d
+        ```
+    *   Push the schema to the database:
+        ```bash
+        export DATABASE_URL="postgresql://rcc_user:rcc_password@localhost:5433/rcc_db"
+        pnpm --filter @rcryptocurrency/database db:push
+        ```
+
+4.  **Run Development Server**:
     ```bash
-    pnpm run -w db:generate  # Generate Prisma Client
-    pnpm run -w db:push      # Push schema to dev.db
+    pnpm dev
     ```
+    This starts all apps (Web, Ledger, Oracle, Scraper) in parallel.
 
-3.  **Environment Variables**:
-    Create a `.env` file in `apps/ledger` (and other apps as needed) with:
-    ```env
-    # Optional: Custom RPC URLs if needed
-    # ARBITRUM_NOVA_RPC=...
-    
-    # Optional: CoinGecko API Key for Oracle
-    # COINGECKO_API_KEY=...
+5.  **Run Moon Monitor**:
+    ```bash
+    pnpm --filter ledger monitor-moons
     ```
-
-### Running the Stack
-You can run all applications simultaneously using Turbo:
-
-```bash
-pnpm dev
-```
-
-Or run specific apps:
-```bash
-pnpm dev --filter=web       # Run only the frontend
-pnpm dev --filter=scraper   # Run only the scraper
-```
 
 ---
 

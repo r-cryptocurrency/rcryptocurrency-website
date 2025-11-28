@@ -26,53 +26,41 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Mobile Menu Button */}
-          <div className="flex items-center gap-4 lg:hidden">
+          {/* Menu Button (Always Visible) */}
+          <div className="flex items-center gap-4">
             <ThemeToggle />
-            <button 
-              className="text-white focus:outline-none"
-              onClick={() => setIsOpen(!isOpen)}
-            >
-              <i className={`fas ${isOpen ? 'fa-times' : 'fa-bars'} text-2xl`}></i>
-            </button>
-          </div>
+            <div className="relative">
+              <button 
+                className="text-white focus:outline-none"
+                onClick={() => setIsOpen(!isOpen)}
+              >
+                <i className={`fas ${isOpen ? 'fa-times' : 'fa-bars'} text-2xl`}></i>
+              </button>
 
-          {/* Desktop Menu */}
-          <div className="hidden lg:flex items-center gap-8">
-            <NavLink href="/" label="Home" />
-            <NavLink href="/#timeline" label="Timeline" />
-            <NavLink href="/stats" label="Subreddit Stats" />
-            <NavLink href="/richlist" label="Richlist" />
-            <a 
-              href="https://www.reddit.com/r/CryptoCurrency/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-white hover:text-rcc-dark transition-colors font-medium"
-            >
-              Subreddit
-            </a>
-            <ThemeToggle />
+              {/* Dropdown Menu */}
+              {isOpen && (
+                <div className="absolute top-full right-0 mt-4 w-48 bg-rcc-orange dark:bg-rcc-dark-orange rounded-xl shadow-xl border border-white/10 flex flex-col gap-2 p-2 animate-in fade-in slide-in-from-top-2 z-50">
+                  <NavLink href="/" label="Home" mobile onClick={() => setIsOpen(false)} />
+                  <NavLink href="/#timeline" label="Timeline" mobile onClick={() => setIsOpen(false)} />
+                  <NavLink href="/stats" label="Stats" mobile onClick={() => setIsOpen(false)} />
+                  <NavLink href="/richlist" label="Richlist" mobile onClick={() => setIsOpen(false)} />
+                  <NavLink href="/burns" label="Burns" mobile onClick={() => setIsOpen(false)} />
+                  <NavLink href="/calendar" label="Calendar" mobile onClick={() => setIsOpen(false)} />
+                  <NavLink href="/swap" label="Swap" mobile onClick={() => setIsOpen(false)} />
+                  <a 
+                    href="https://www.reddit.com/r/CryptoCurrency/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 rounded-lg hover:bg-white/20 text-white font-semibold transition-colors text-sm text-center"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Subreddit
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-
-        {/* Mobile Menu */}
-        {isOpen && (
-          <div className="lg:hidden mt-4 pb-4 border-t border-white/10 pt-4 flex flex-col gap-4">
-            <NavLink href="/" label="Home" mobile onClick={() => setIsOpen(false)} />
-            <NavLink href="/#timeline" label="Timeline" mobile onClick={() => setIsOpen(false)} />
-            <NavLink href="/stats" label="Subreddit Stats" mobile onClick={() => setIsOpen(false)} />
-            <NavLink href="/richlist" label="Richlist" mobile onClick={() => setIsOpen(false)} />
-            <a 
-              href="https://www.reddit.com/r/CryptoCurrency/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-white hover:text-rcc-dark transition-colors font-medium block py-2"
-              onClick={() => setIsOpen(false)}
-            >
-              Subreddit
-            </a>
-          </div>
-        )}
       </div>
     </nav>
   );
@@ -82,10 +70,11 @@ function NavLink({ href, label, mobile = false, onClick }: { href: string, label
   return (
     <Link 
       href={href} 
-      className={`text-white hover:text-rcc-dark transition-colors font-medium ${mobile ? 'block py-2' : ''}`}
+      className={`px-4 py-2 rounded-lg hover:bg-white/20 text-white font-semibold transition-colors text-sm text-center ${mobile ? 'w-full' : ''}`}
       onClick={onClick}
     >
       {label}
     </Link>
   );
+
 }

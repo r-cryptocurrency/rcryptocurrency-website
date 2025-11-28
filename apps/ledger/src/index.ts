@@ -3,8 +3,10 @@ import { arbitrum, mainnet } from 'viem/chains';
 import { MOON_CONTRACTS } from '@rcryptocurrency/chain-data';
 import { prisma } from '@rcryptocurrency/database';
 import * as dotenv from 'dotenv';
+import * as path from 'path';
 
-dotenv.config();
+// Load .env from project root
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 // Define Arbitrum Nova manually
 const arbitrumNova = {

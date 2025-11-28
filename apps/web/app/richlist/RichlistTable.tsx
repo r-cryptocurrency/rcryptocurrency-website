@@ -52,7 +52,7 @@ export default function RichlistTable({ holders, skip, currentSort, currentOrder
             onChange={(e) => setShowEarned(e.target.checked)}
             className="rounded border-slate-300 text-rcc-orange focus:ring-rcc-orange"
           />
-          <span>Show Earned Moons</span>
+          <span>Show Est. Earned</span>
         </label>
       </div>
       <div className="overflow-x-auto">
@@ -63,7 +63,7 @@ export default function RichlistTable({ holders, skip, currentSort, currentOrder
               <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-sm uppercase tracking-wider">User / Address</th>
               <SortHeader label="Total Balance" sortKey="totalBalance" currentSort={currentSort} currentOrder={currentOrder} />
               {showEarned && (
-                <SortHeader label="Earned" sortKey="earnedMoons" currentSort={currentSort} currentOrder={currentOrder} />
+                <SortHeader label="Est. Earned" sortKey="earnedMoons" currentSort={currentSort} currentOrder={currentOrder} />
               )}
               <SortHeader label="Last Active" sortKey="lastTransferAt" currentSort={currentSort} currentOrder={currentOrder} />
               <SortHeader label="Nova" sortKey="balanceNova" currentSort={currentSort} currentOrder={currentOrder} />
