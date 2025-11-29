@@ -1,4 +1,4 @@
-import { createPublicClient, http, parseAbiItem } from 'viem';
+import { createPublicClient, http, fallback, parseAbiItem } from 'viem';
 import { arbitrum, mainnet } from 'viem/chains';
 import { MOON_CONTRACTS } from '@rcryptocurrency/chain-data';
 import { prisma } from '@rcryptocurrency/database';
@@ -32,17 +32,30 @@ const arbitrumNova = {
 
 const novaClient = createPublicClient({
   chain: arbitrumNova,
-  transport: http(process.env.RPC_URL_NOVA || "https://nova.arbitrum.io/rpc") 
+  transport: fallback([
+    http(process.env.RPC_URL_NOVA, { timeout: 60_000 }), // QuickNode
+    http(process.env.ALCHEMY_URL_NOVA, { timeout: 60_000 }), // Alchemy
+    http("https://nova.arbitrum.io/rpc", { timeout: 60_000 }) // Public
+  ])
 });
 
 const oneClient = createPublicClient({
   chain: arbitrum,
-  transport: http(process.env.RPC_URL_ONE || "https://arb1.arbitrum.io/rpc")
+  transport: fallback([
+    http(process.env.RPC_URL_ONE, { timeout: 60_000 }), // QuickNode
+    http(process.env.ALCHEMY_URL_ONE, { timeout: 60_000 }), // Alchemy
+    http("https://arb1.arbitrum.io/rpc", { timeout: 60_000 }) // Public
+  ])
 });
 
 const ethClient = createPublicClient({
   chain: mainnet,
-  transport: http(process.env.RPC_URL_ETH || "https://eth.llamarpc.com")
+  transport: fallback([
+    http(process.env.RPC_URL_ETH, { timeout: 60_000 }), // QuickNode
+    http(process.env.ALCHEMY_URL_ETH, { timeout: 60_000 }), // Alchemy
+    http("https://rpc.ankr.com/eth", { timeout: 60_000 }), // Public
+    http("https://eth.llamarpc.com", { timeout: 60_000 })
+  ])
 });
 
 const BALANCE_ABI = [parseAbiItem('function balanceOf(address) view returns (uint256)')];
@@ -65,25 +78,34 @@ async function getBalance(client: any, contract: string, address: string): Promi
 
 async function getActivity(client: any, contract: string, address: string) {
   try {
-    const currentBlock = await client.getBlockNumber();
+    const currentBlock = await withRetry<bigint>(() => client.getBlockNumber());
     // Scan last 100,000 blocks for activity (approx 1-2 days on Nova)
-    const fromBlock = currentBlock - 100000n; 
+    // Alchemy Free Tier limits getLogs to 10 blocks range if not using specific filters, 
+    // but we are filtering by address so it should be better. 
+    // However, the error says "10 block range" explicitly.
+    // Let's reduce the scan range significantly for now to just check "recent" activity
+    // or rely on the nonce check we added earlier.
+    
+    // Actually, if we are hitting Alchemy limits, we should just check the last few blocks
+    // or skip this check if it's too expensive.
+    // Let's try a very small range just to see if they are *currently* active.
+    const fromBlock = currentBlock - 100n; 
 
     const [logsOut, logsIn] = await Promise.all([
-      client.getLogs({
+      withRetry<any[]>(() => client.getLogs({
         address: contract as `0x${string}`,
         event: TRANSFER_EVENT,
         args: { from: address as `0x${string}` },
         fromBlock,
         toBlock: 'latest'
-      }),
-      client.getLogs({
+      })),
+      withRetry<any[]>(() => client.getLogs({
         address: contract as `0x${string}`,
         event: TRANSFER_EVENT,
         args: { to: address as `0x${string}` },
         fromBlock,
         toBlock: 'latest'
-      })
+      }))
     ]);
 
     const allLogs = [...logsOut, ...logsIn].sort((a, b) => {
@@ -102,7 +124,7 @@ async function getActivity(client: any, contract: string, address: string) {
       console.log(`Found ${burns.length} historical burns for ${address}`);
       for (const burn of burns) {
         const txHash = burn.transactionHash;
-        const block = await client.getBlock({ blockNumber: burn.blockNumber });
+        const block = await withRetry<any>(() => client.getBlock({ blockNumber: burn.blockNumber }));
         const timestamp = new Date(Number(block.timestamp) * 1000);
         const amount = Number(burn.args.value) / 1e18;
         const from = burn.args.from;
@@ -127,7 +149,7 @@ async function getActivity(client: any, contract: string, address: string) {
     let lastTransferAt: Date | null = null;
     if (allLogs.length > 0) {
       const lastLog = allLogs[0];
-      const block = await client.getBlock({ blockNumber: lastLog.blockNumber });
+      const block = await withRetry<any>(() => client.getBlock({ blockNumber: lastLog.blockNumber }));
       lastTransferAt = new Date(Number(block.timestamp) * 1000);
     }
 
@@ -147,6 +169,21 @@ const DISTRIBUTORS = [
   '0xda9338361d1CFAB5813a92697c3f0c0c42368FB3'
 ];
 
+async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> {
+  try {
+    return await fn();
+  } catch (e: any) {
+    if (retries === 0) throw e;
+    const isRateLimit = e?.message?.includes('429') || e?.message?.includes('Too Many Requests') || e?.message?.includes('timeout');
+    if (isRateLimit) {
+      console.warn(`RPC Rate limit/Timeout. Retrying in ${delay}ms... (${retries} left)`);
+      await new Promise(r => setTimeout(r, delay));
+      return withRetry(fn, retries - 1, delay * 2);
+    }
+    throw e;
+  }
+}
+
 async function updateEarnedMoons() {
   console.log('Calculating Earned Moons from Distributor transfers...');
   const earnedMap = new Map<string, number>(); // Address -> Amount
@@ -157,23 +194,29 @@ async function updateEarnedMoons() {
   for (const distributor of DISTRIBUTORS) {
     console.log(`Fetching transfers from ${distributor}...`);
     let fromBlock = 0n;
-    let chunkSize = 10000n; // Start with 10k blocks
+    let chunkSize = 50000n; // Larger chunks for logs if possible, but reduce on error
     
     while (fromBlock < currentBlock) {
       const toBlock = fromBlock + chunkSize > currentBlock ? currentBlock : fromBlock + chunkSize;
       
       try {
-        const logs = await novaClient.getLogs({
+        // Don't use global withRetry here because we want to handle limit errors by resizing immediately
+        // But we do want to retry on network errors.
+        const logs = await withRetry(() => novaClient.getLogs({
           address: MOON_CONTRACTS.arbitrumNova as `0x${string}`,
           event: TRANSFER_EVENT,
           args: { from: distributor as `0x${string}` },
           fromBlock,
           toBlock
-        });
+        }), 3, 2000);
 
         for (const log of logs) {
           const to = log.args.to?.toLowerCase();
           const value = Number(log.args.value) / 1e18;
+          
+          // Skip if sending to the distributor itself (intermediary step)
+          if (to === '0xda9338361d1cfab5813a92697c3f0c0c42368fb3') continue;
+
           if (to && value > 0) {
             const current = earnedMap.get(to) || 0;
             earnedMap.set(to, current + value);
@@ -181,40 +224,29 @@ async function updateEarnedMoons() {
         }
         
         totalTransfersFound += logs.length;
-        process.stdout.write(`\rScanned blocks ${fromBlock} - ${toBlock}. Found ${logs.length} transfers (Total: ${totalTransfersFound}). (Chunk: ${chunkSize})`);
+        process.stdout.write(`\rScanned blocks ${fromBlock} - ${toBlock}. Found ${logs.length} transfers (Total: ${totalTransfersFound}).`);
         
-        // If we got a lot of logs, maybe decrease chunk size to be safe, or keep it if it worked.
-        // If we got very few logs, we could increase, but let's be safe.
-        // Add a small delay to avoid rate limits
-        await new Promise(r => setTimeout(r, 500));
         fromBlock = toBlock + 1n;
+        
+        // If successful and we are below max chunk size, slowly increase it
+        if (chunkSize < 10000n) {
+            chunkSize = chunkSize + 1000n;
+        }
+        
+        await new Promise(r => setTimeout(r, 100)); // Small delay
 
       } catch (e: any) {
-        const errorMsg = e?.message || JSON.stringify(e);
-        const isRateLimit = errorMsg.includes('429') || errorMsg.includes('Too Many Requests');
-        const isRpcLimit = errorMsg.includes('limit') || errorMsg.includes('timeout') || errorMsg.includes('RPC Request failed');
-
-        if (isRateLimit) {
-           // Rate limit hit: Wait and retry same block range
-           // Do not reduce chunk size further, as that increases request count
-           process.stdout.write(`\nRate limit (429). Pausing 10s...`);
-           await new Promise(r => setTimeout(r, 10000));
-        } else if (isRpcLimit) {
-          // Reduce chunk size and retry
-          const newChunkSize = chunkSize / 2n;
-          if (newChunkSize < 100n) {
-             // If chunk size gets too small, we might be stuck or just hitting limits. 
-             // Try to skip or just wait longer.
-             console.error(`\nStuck on block ${fromBlock} with small chunk. Skipping range.`);
-             fromBlock = toBlock + 1n;
-             chunkSize = 5000n; // Reset to reasonable size
-          } else {
-             chunkSize = newChunkSize;
-          }
+        const msg = e?.message || "";
+        // Check for specific RPC limit error
+        if (msg.includes("exceeds limit") || msg.includes("limit exceeded") || msg.includes("timeout")) {
+            const newChunk = chunkSize / 2n;
+            chunkSize = newChunk < 1n ? 1n : newChunk;
+            console.log(`\nReducing chunk size to ${chunkSize} due to limit/timeout at block ${fromBlock}`);
+            await new Promise(r => setTimeout(r, 1000));
         } else {
-          console.error(`\nError fetching logs for ${distributor} at block ${fromBlock}:`, e);
-          await new Promise(r => setTimeout(r, 2000));
-          fromBlock = toBlock + 1n; // Skip if unknown error to avoid infinite loop
+            console.error(`\nError fetching logs for ${distributor} at block ${fromBlock}:`, msg);
+            // For other errors, wait a bit and retry same block (loop continues)
+            await new Promise(r => setTimeout(r, 5000));
         }
       }
     }
@@ -262,34 +294,56 @@ async function updateEarnedMoons() {
 }
 
 async function main() {
-  // Run the earned moons calculation first
-  await updateEarnedMoons();
-
-  console.log("Fetching all addresses (this may take a while)...");
+  console.log("--- DEBUG: RUNNING NEW VERSION ---");
+  const totalHolders = await prisma.holder.count();
+  
+  // Resume logic: Only fetch addresses that haven't been updated in the last hour
+  // This allows the script to be restarted without reprocessing the same addresses immediately
+  const RESUME_THRESHOLD_MINUTES = 60;
+  const cutoff = new Date(Date.now() - RESUME_THRESHOLD_MINUTES * 60 * 1000);
+  
+  console.log(`Fetching addresses not updated in the last ${RESUME_THRESHOLD_MINUTES} minutes (Resume Mode)...`);
+  
   const holders = await prisma.holder.findMany({
-    // Fetch everyone, not just labeled ones
+    where: {
+      lastUpdated: {
+        lt: cutoff
+      }
+    },
     select: { address: true, label: true, username: true }
   });
 
-  // Prioritize labeled addresses
+  console.log(`Found ${holders.length} stale addresses to refresh (out of ${totalHolders} total).`);
+
+  const labeledCount = holders.filter(h => h.label).length;
+  if (labeledCount === 0 && holders.length > 0) {
+      // Only warn if we actually fetched something but found no labels
+      // (It's possible all labeled ones were already processed)
+      const allLabeled = await prisma.holder.count({ where: { label: { not: null } } });
+      if (allLabeled === 0) {
+        console.warn("WARNING: No labeled addresses found in DB. Did you run 'pnpm seed-labels'?");
+      }
+  }
+
+  // Prioritize: 1. Labeled (Known), 2. Reddit Users (Username), 3. Others
   holders.sort((a, b) => {
     if (a.label && !b.label) return -1;
     if (!a.label && b.label) return 1;
+    if (a.username && !b.username) return -1;
+    if (!a.username && b.username) return 1;
     return 0;
   });
 
   console.log(`Found ${holders.length} addresses to refresh.`);
 
-  // Process in batches to use multicall and avoid overwhelming the DB/RPC
-  const BATCH_SIZE = 50;
+  // Reduced batch size to avoid RPC timeouts
+  const BATCH_SIZE = 20;
   
   for (let i = 0; i < holders.length; i += BATCH_SIZE) {
     const batch = holders.slice(i, i + BATCH_SIZE);
     console.log(`Processing batch ${i + 1}-${Math.min(i + BATCH_SIZE, holders.length)} of ${holders.length}...`);
 
     try {
-      // Prepare multicall contracts for this batch
-      // We need to check Nova, One, and Eth for each address
       const novaContracts = batch.map(h => ({
         address: MOON_CONTRACTS.arbitrumNova as `0x${string}`,
         abi: BALANCE_ABI,
@@ -311,14 +365,14 @@ async function main() {
         args: [h.address as `0x${string}`]
       }));
 
-      // Execute multicalls in parallel
+      // Execute multicalls with retry
       const [novaResults, oneResults, ethResults] = await Promise.all([
-        novaClient.multicall({ contracts: novaContracts }),
-        oneClient.multicall({ contracts: oneContracts }),
-        ethClient.multicall({ contracts: ethContracts })
+        withRetry(() => novaClient.multicall({ contracts: novaContracts })),
+        withRetry(() => oneClient.multicall({ contracts: oneContracts })),
+        withRetry(() => ethClient.multicall({ contracts: ethContracts }))
       ]);
 
-      // Process results and update DB sequentially to avoid SQLite timeouts and RPC rate limits
+      // Process results
       for (let index = 0; index < batch.length; index++) {
         const holder = batch[index];
         const novaBal = Number(novaResults[index].result || 0n) / 1e18;
@@ -329,9 +383,20 @@ async function main() {
         let activity: { lastTransferAt: Date | null, hasOutgoing: boolean } = { lastTransferAt: null, hasOutgoing: false };
         
         try {
-          // Add a small delay before getLogs to be nice to RPC
-          await new Promise(r => setTimeout(r, 100)); 
-          activity = await getActivity(novaClient, MOON_CONTRACTS.arbitrumNova, holder.address);
+          // Check nonce first (cheap)
+          const nonce = await withRetry(() => novaClient.getTransactionCount({ address: holder.address as `0x${string}` }));
+          activity.hasOutgoing = nonce > 0;
+
+          // Only check logs if they have balance OR have outgoing txs (active user)
+          // This skips log scanning for inactive empty addresses (spam/dust)
+          // Also skipping log scan for now to avoid Alchemy limits until we have a better solution
+          // if (total > 0 || activity.hasOutgoing) {
+          //    // Add a small delay before getLogs
+          //    await new Promise(r => setTimeout(r, 50)); 
+          //    const logs = await getActivity(novaClient, MOON_CONTRACTS.arbitrumNova, holder.address);
+          //    activity.lastTransferAt = logs.lastTransferAt;
+          //    // We already checked outgoing via nonce, but logs might confirm recent activity
+          // }
         } catch (err) {
           console.warn(`Failed to get activity for ${holder.address}`, err);
         }
@@ -351,11 +416,16 @@ async function main() {
 
     } catch (e) {
       console.error(`Error processing batch ${i}:`, e);
+      // Wait longer on batch error
+      await new Promise(r => setTimeout(r, 5000));
     }
     
-    // Rate limit slightly - increased to 1s to be nicer to RPCs with getLogs
-    await new Promise(r => setTimeout(r, 1000));
+    // Rate limit between batches
+    await new Promise(r => setTimeout(r, 500));
   }
+
+  console.log("Balances updated. Now calculating Earned Moons (this takes a long time)...");
+  await updateEarnedMoons();
 
   console.log("Done!");
 }

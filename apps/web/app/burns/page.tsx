@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 const PAGE_SIZE = 20;
 
-async function getBurns(page: number, minAmount: number, chain: string | undefined): Promise<{ data: Burn[], total: number }> {
+async function getBurns(page: number, minAmount: number, chain: string | undefined) {
   try {
     const where: any = {};
     if (minAmount > 0) {
@@ -28,10 +28,20 @@ async function getBurns(page: number, minAmount: number, chain: string | undefin
       prisma.burn.count({ where })
     ]);
 
-    return { data, total };
+    // Resolve senders
+    const senders = Array.from(new Set(data.map(b => b.sender.toLowerCase())));
+    const holders = await prisma.holder.findMany({
+      where: { address: { in: senders } },
+      select: { address: true, username: true, label: true }
+    });
+    
+    const holderMap = new Map<string, { username: string | null, label: string | null }>();
+    holders.forEach(h => holderMap.set(h.address.toLowerCase(), h));
+
+    return { data, total, holderMap };
   } catch (e) {
     console.error("Failed to fetch burns:", e);
-    return { data: [], total: 0 };
+    return { data: [], total: 0, holderMap: new Map() };
   }
 }
 
@@ -40,7 +50,7 @@ export default async function BurnsPage({ searchParams }: { searchParams: { page
   const minAmount = parseFloat(searchParams.minAmount || '0');
   const chain = searchParams.chain;
 
-  const { data: burns, total } = await getBurns(page, minAmount, chain);
+  const { data: burns, total, holderMap } = await getBurns(page, minAmount, chain);
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
@@ -65,12 +75,17 @@ export default async function BurnsPage({ searchParams }: { searchParams: { page
                   <TableHeaderCell className="dark:text-slate-300">Time</TableHeaderCell>
                   <TableHeaderCell className="dark:text-slate-300">Chain</TableHeaderCell>
                   <TableHeaderCell className="dark:text-slate-300">Amount</TableHeaderCell>
-                  <TableHeaderCell className="dark:text-slate-300">Sender</TableHeaderCell>
+                  <TableHeaderCell className="dark:text-slate-300">Address</TableHeaderCell>
+                  <TableHeaderCell className="dark:text-slate-300">Label</TableHeaderCell>
                   <TableHeaderCell className="dark:text-slate-300">Tx</TableHeaderCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {burns.map((burn) => (
+                {burns.map((burn) => {
+                  const senderInfo = holderMap.get(burn.sender.toLowerCase());
+                  const label = senderInfo?.username ? `u/${senderInfo.username}` : senderInfo?.label || '-';
+                  
+                  return (
                   <TableRow key={burn.id}>
                     <TableCell className="dark:text-slate-300">{new Date(burn.timestamp).toLocaleString()}</TableCell>
                     <TableCell>
@@ -84,6 +99,9 @@ export default async function BurnsPage({ searchParams }: { searchParams: { page
                     <TableCell className="font-mono text-xs text-slate-500 dark:text-slate-400">
                       {burn.sender.substring(0, 6)}...{burn.sender.substring(38)}
                     </TableCell>
+                    <TableCell className="font-mono text-xs text-slate-500 dark:text-slate-400">
+                      {label}
+                    </TableCell>
                     <TableCell>
                       <a 
                         href={burn.chain.includes('Nova') ? `https://nova.arbiscan.io/tx/${burn.txHash}` : `https://arbiscan.io/tx/${burn.txHash}`}
@@ -95,10 +113,10 @@ export default async function BurnsPage({ searchParams }: { searchParams: { page
                       </a>
                     </TableCell>
                   </TableRow>
-                ))}
+                )})}
                 {burns.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-slate-500 dark:text-slate-400">
+                    <TableCell colSpan={6} className="text-center text-slate-500 dark:text-slate-400">
                       No burns found matching criteria.
                     </TableCell>
                   </TableRow>

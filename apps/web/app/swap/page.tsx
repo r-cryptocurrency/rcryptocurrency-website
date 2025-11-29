@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 
 const PAGE_SIZE = 20;
 
-async function getRecentSwaps(page: number, minAmount: number, dex: string | undefined): Promise<{ data: Swap[], total: number }> {
+async function getRecentSwaps(page: number, minAmount: number, dex: string | undefined) {
   try {
     const where: any = {};
     if (minAmount > 0) {
@@ -40,10 +40,20 @@ async function getRecentSwaps(page: number, minAmount: number, dex: string | und
       prisma.swap.count({ where })
     ]);
 
-    return { data, total };
+    // Resolve makers
+    const makers = Array.from(new Set(data.map(s => s.maker.toLowerCase())));
+    const holders = await prisma.holder.findMany({
+      where: { address: { in: makers } },
+      select: { address: true, username: true, label: true }
+    });
+    
+    const holderMap = new Map<string, { username: string | null, label: string | null }>();
+    holders.forEach(h => holderMap.set(h.address.toLowerCase(), h));
+
+    return { data, total, holderMap };
   } catch (e) {
     console.error("Failed to fetch swaps:", e);
-    return { data: [], total: 0 };
+    return { data: [], total: 0, holderMap: new Map() };
   }
 }
 
@@ -52,7 +62,7 @@ export default async function SwapPage({ searchParams }: { searchParams: { page?
   const minAmount = parseFloat(searchParams.minAmount || '0');
   const dex = searchParams.dex;
 
-  const { data: swaps, total } = await getRecentSwaps(page, minAmount, dex);
+  const { data: swaps, total, holderMap } = await getRecentSwaps(page, minAmount, dex);
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   // Uniswap URL for Arbitrum One
@@ -106,19 +116,31 @@ export default async function SwapPage({ searchParams }: { searchParams: { page?
                   <TableRow>
                     <TableHeaderCell className="dark:text-slate-300">Time</TableHeaderCell>
                     <TableHeaderCell className="dark:text-slate-300">DEX</TableHeaderCell>
+                    <TableHeaderCell className="dark:text-slate-300">Address</TableHeaderCell>
+                    <TableHeaderCell className="dark:text-slate-300">Label</TableHeaderCell>
                     <TableHeaderCell className="dark:text-slate-300">In</TableHeaderCell>
                     <TableHeaderCell className="dark:text-slate-300">Out</TableHeaderCell>
                     <TableHeaderCell className="dark:text-slate-300">Tx</TableHeaderCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {swaps.map((swap) => (
+                  {swaps.map((swap) => {
+                    const makerInfo = holderMap.get(swap.maker.toLowerCase());
+                    const label = makerInfo?.username ? `u/${makerInfo.username}` : makerInfo?.label || '-';
+                    
+                    return (
                     <TableRow key={swap.id}>
                     <TableCell className="dark:text-slate-300">{new Date(swap.timestamp).toLocaleTimeString()}</TableCell>
                     <TableCell>
                       <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
                         {swap.dex}
                       </span>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-slate-500 dark:text-slate-400">
+                      {swap.maker.substring(0, 6)}...{swap.maker.substring(38)}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-slate-500 dark:text-slate-400">
+                      {label}
                     </TableCell>
                     <TableCell className="font-mono text-sm dark:text-slate-300">
                         {swap.amountIn.toLocaleString(undefined, { maximumFractionDigits: ['ETH', 'WETH'].includes(swap.tokenIn) ? 5 : 2 })} {swap.tokenIn}
@@ -137,10 +159,10 @@ export default async function SwapPage({ searchParams }: { searchParams: { page?
                         </a>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )})}
                   {swaps.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-slate-500 dark:text-slate-400">
+                      <TableCell colSpan={7} className="text-center text-slate-500 dark:text-slate-400">
                         No swaps found matching criteria.
                       </TableCell>
                     </TableRow>
