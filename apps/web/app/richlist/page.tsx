@@ -21,20 +21,37 @@ export default async function RichlistPage({
   const pageSize = 100;
   const skip = (page - 1) * pageSize;
 
-  let orderBy: any = { totalBalance: 'desc' };
+  let orderBy: any[] = [];
+  let extraWhere: Prisma.HolderWhereInput = {};
+
   if (sort === 'earnedMoons') {
-    orderBy = { user: { earnedMoons: order } };
-  } else if (['totalBalance', 'balanceNova', 'balanceOne', 'balanceEth', 'lastTransferAt'].includes(sort)) {
-    orderBy = { [sort]: order };
+    orderBy = [{ user: { earnedMoons: order } }];
+    // When sorting by earned moons, only show users who have a Reddit account linked
+    // This prevents nulls from cluttering the top/bottom of the list
+    extraWhere = { username: { not: null } };
+  } else if (['totalBalance', 'balanceNova', 'balanceOne', 'balanceEth'].includes(sort)) {
+    orderBy = [{ [sort]: order }];
+  } else if (sort === 'lastTransferAt') {
+    // Always put nulls last, so we see actual dates first whether sorting asc or desc
+    orderBy = [{ lastTransferAt: { sort: order, nulls: 'last' } }];
+  } else {
+    orderBy = [{ totalBalance: 'desc' }];
   }
 
-  const where: Prisma.HolderWhereInput = search ? {
-    OR: [
-      { address: { contains: search } },
-      { username: { contains: search } },
-      { label: { contains: search } }
-    ]
-  } : {};
+  // Always add a secondary sort by address to ensure deterministic pagination
+  // This fixes the issue where "Next Page" shows the same results if values are identical
+  orderBy.push({ address: 'asc' });
+
+  const where: Prisma.HolderWhereInput = {
+    ...extraWhere,
+    ...(search ? {
+      OR: [
+        { address: { contains: search, mode: 'insensitive' } },
+        { username: { contains: search, mode: 'insensitive' } },
+        { label: { contains: search, mode: 'insensitive' } }
+      ]
+    } : {})
+  };
 
   const [holders, totalHolders] = await Promise.all([
     prisma.holder.findMany({
@@ -48,6 +65,22 @@ export default async function RichlistPage({
   ]);
 
   const totalPages = Math.ceil(totalHolders / pageSize);
+
+  // Helper to generate pagination links
+  const getPageLink = (p: number) => `/richlist?page=${p}&sort=${sort}&order=${order}${search ? `&search=${search}` : ''}`;
+  
+  const PaginationButton = ({ page, label, active = false, disabled = false }: any) => {
+    if (disabled) return <span className="px-3 py-2 text-slate-400 dark:text-slate-600 border border-transparent">{label}</span>;
+    if (active) return <span className="px-3 py-2 bg-rcc-orange text-white rounded-lg border border-rcc-orange">{label}</span>;
+    return (
+      <Link 
+        href={getPageLink(page)}
+        className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+      >
+        {label}
+      </Link>
+    );
+  };
 
   return (
     <Background>
@@ -71,26 +104,23 @@ export default async function RichlistPage({
           </div>
 
           {/* Pagination Controls */}
-          <div className="flex justify-center gap-4">
-            {page > 1 && (
-              <Link 
-                href={`/richlist?page=${page - 1}&sort=${sort}&order=${order}${search ? `&search=${search}` : ''}`}
-                className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-              >
-                Previous
-              </Link>
-            )}
-            <span className="px-4 py-2 text-slate-600 dark:text-slate-400">
-              Page {page} of {totalPages}
-            </span>
-            {page < totalPages && (
-              <Link 
-                href={`/richlist?page=${page + 1}&sort=${sort}&order=${order}${search ? `&search=${search}` : ''}`}
-                className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-              >
-                Next
-              </Link>
-            )}
+          <div className="flex justify-center items-center gap-2 flex-wrap">
+            <PaginationButton page={1} label="First" disabled={page === 1} />
+            <PaginationButton page={page - 1} label="Prev" disabled={page === 1} />
+            
+            {/* Show range of pages around current */}
+            {page > 3 && <span className="px-2 text-slate-400">...</span>}
+            
+            {Array.from({ length: 5 }, (_, i) => page - 2 + i)
+              .filter(p => p > 0 && p <= totalPages)
+              .map(p => (
+                <PaginationButton key={p} page={p} label={p.toString()} active={p === page} />
+              ))}
+            
+            {page < totalPages - 2 && <span className="px-2 text-slate-400">...</span>}
+
+            <PaginationButton page={page + 1} label="Next" disabled={page === totalPages} />
+            <PaginationButton page={totalPages} label="Last" disabled={page === totalPages} />
           </div>
         </div>
       </main>

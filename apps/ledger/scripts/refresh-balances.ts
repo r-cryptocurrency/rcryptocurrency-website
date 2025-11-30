@@ -8,6 +8,16 @@ import * as path from 'path';
 // Load .env from project root
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
+const RPC_URL_NOVA = process.env.RPC_URL_NOVA?.trim();
+const RPC_URL_ONE = process.env.RPC_URL_ONE?.trim();
+const RPC_URL_ETH = process.env.RPC_URL_ETH?.trim();
+
+if (!RPC_URL_NOVA) console.warn("WARNING: RPC_URL_NOVA not set. QuickNode will be skipped.");
+else console.log(`Using Nova RPC: ${RPC_URL_NOVA.replace(/([a-zA-Z0-9]{10})[a-zA-Z0-9]+/, '$1...')}`);
+
+if (!RPC_URL_ONE) console.warn("WARNING: RPC_URL_ONE not set. QuickNode will be skipped.");
+if (!RPC_URL_ETH) console.warn("WARNING: RPC_URL_ETH not set. QuickNode will be skipped.");
+
 // Define Arbitrum Nova manually
 const arbitrumNova = {
   id: 42170,
@@ -33,7 +43,7 @@ const arbitrumNova = {
 const novaClient = createPublicClient({
   chain: arbitrumNova,
   transport: fallback([
-    http(process.env.RPC_URL_NOVA, { timeout: 60_000 }), // QuickNode
+    http(RPC_URL_NOVA, { timeout: 60_000 }), // QuickNode
     http(process.env.ALCHEMY_URL_NOVA, { timeout: 60_000 }), // Alchemy
     http("https://nova.arbitrum.io/rpc", { timeout: 60_000 }) // Public
   ])
@@ -42,8 +52,9 @@ const novaClient = createPublicClient({
 const oneClient = createPublicClient({
   chain: arbitrum,
   transport: fallback([
-    http(process.env.RPC_URL_ONE, { timeout: 60_000 }), // QuickNode
+    http(RPC_URL_ONE, { timeout: 60_000 }), // QuickNode
     http(process.env.ALCHEMY_URL_ONE, { timeout: 60_000 }), // Alchemy
+    http(`https://arbitrum-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`, { timeout: 60_000 }), // Infura
     http("https://arb1.arbitrum.io/rpc", { timeout: 60_000 }) // Public
   ])
 });
@@ -51,9 +62,9 @@ const oneClient = createPublicClient({
 const ethClient = createPublicClient({
   chain: mainnet,
   transport: fallback([
-    http(process.env.RPC_URL_ETH, { timeout: 60_000 }), // QuickNode
+    http(RPC_URL_ETH, { timeout: 60_000 }), // QuickNode
     http(process.env.ALCHEMY_URL_ETH, { timeout: 60_000 }), // Alchemy
-    http("https://rpc.ankr.com/eth", { timeout: 60_000 }), // Public
+    http(`https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`, { timeout: 60_000 }), // Infura
     http("https://eth.llamarpc.com", { timeout: 60_000 })
   ])
 });
@@ -77,91 +88,121 @@ async function getBalance(client: any, contract: string, address: string): Promi
 }
 
 async function getActivity(client: any, contract: string, address: string) {
+  // 1. Try QuickNode (Standard RPC) first for recent activity
+  // This uses your QuickNode credits as requested.
   try {
     const currentBlock = await withRetry<bigint>(() => client.getBlockNumber());
-    // Scan last 100,000 blocks for activity (approx 1-2 days on Nova)
-    // Alchemy Free Tier limits getLogs to 10 blocks range if not using specific filters, 
-    // but we are filtering by address so it should be better. 
-    // However, the error says "10 block range" explicitly.
-    // Let's reduce the scan range significantly for now to just check "recent" activity
-    // or rely on the nonce check we added earlier.
+    // Scan last 50,000 blocks (approx 3.5 hours on Arb). 
+    // This is a reasonable range for QuickNode without hitting timeouts.
+    const recentStart = currentBlock - 50000n; 
     
-    // Actually, if we are hitting Alchemy limits, we should just check the last few blocks
-    // or skip this check if it's too expensive.
-    // Let's try a very small range just to see if they are *currently* active.
-    const fromBlock = currentBlock - 100n; 
-
     const [logsOut, logsIn] = await Promise.all([
-      withRetry<any[]>(() => client.getLogs({
-        address: contract as `0x${string}`,
-        event: TRANSFER_EVENT,
-        args: { from: address as `0x${string}` },
-        fromBlock,
-        toBlock: 'latest'
-      })),
-      withRetry<any[]>(() => client.getLogs({
-        address: contract as `0x${string}`,
-        event: TRANSFER_EVENT,
-        args: { to: address as `0x${string}` },
-        fromBlock,
-        toBlock: 'latest'
-      }))
+        withRetry<any[]>(() => client.getLogs({
+            address: contract as `0x${string}`,
+            event: TRANSFER_EVENT,
+            args: { from: address as `0x${string}` },
+            fromBlock: recentStart,
+            toBlock: currentBlock
+        })),
+        withRetry<any[]>(() => client.getLogs({
+            address: contract as `0x${string}`,
+            event: TRANSFER_EVENT,
+            args: { to: address as `0x${string}` },
+            fromBlock: recentStart,
+            toBlock: currentBlock
+        }))
     ]);
 
     const allLogs = [...logsOut, ...logsIn].sort((a, b) => {
-      const blockDiff = Number(b.blockNumber) - Number(a.blockNumber);
-      if (blockDiff !== 0) return blockDiff;
-      return Number(b.logIndex) - Number(a.logIndex);
+        const blockDiff = Number(b.blockNumber) - Number(a.blockNumber);
+        if (blockDiff !== 0) return blockDiff;
+        return Number(b.logIndex) - Number(a.logIndex);
     });
 
-    // Check for burns (transfers to 0x0...dead)
-    const BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
-    const burns = logsIn.filter((log: any) => 
-      log.args.to?.toLowerCase() === BURN_ADDRESS.toLowerCase()
-    );
-
-    if (burns.length > 0) {
-      console.log(`Found ${burns.length} historical burns for ${address}`);
-      for (const burn of burns) {
-        const txHash = burn.transactionHash;
-        const block = await withRetry<any>(() => client.getBlock({ blockNumber: burn.blockNumber }));
-        const timestamp = new Date(Number(block.timestamp) * 1000);
-        const amount = Number(burn.args.value) / 1e18;
-        const from = burn.args.from;
-
-        // Upsert burn record
-        await prisma.burn.upsert({
-          where: { txHash },
-          update: {},
-          create: {
-            txHash,
-            blockNumber: Number(burn.blockNumber),
-            timestamp,
-            sender: from || address,
-            amount,
-            chain: contract === MOON_CONTRACTS.arbitrumNova ? 'arbitrum_nova' : 
-                   contract === MOON_CONTRACTS.arbitrumOne ? 'arbitrum_one' : 'ethereum'
-          }
-        });
-      }
-    }
-
-    let lastTransferAt: Date | null = null;
     if (allLogs.length > 0) {
-      const lastLog = allLogs[0];
-      const block = await withRetry<any>(() => client.getBlock({ blockNumber: lastLog.blockNumber }));
-      lastTransferAt = new Date(Number(block.timestamp) * 1000);
+        // Found recent activity via QuickNode!
+        const lastLog = allLogs[0];
+        const block = await withRetry<any>(() => client.getBlock({ blockNumber: lastLog.blockNumber }));
+        return {
+            lastTransferAt: new Date(Number(block.timestamp) * 1000),
+            hasOutgoing: logsOut.length > 0
+        };
     }
-
-    return {
-      lastTransferAt,
-      hasOutgoing: logsOut.length > 0
-    };
-
   } catch (e) {
-    console.error(`Error fetching activity for ${address}:`, e);
-    return { lastTransferAt: null, hasOutgoing: false };
+      // QuickNode failed (timeout/limit), proceed to fallback
   }
+
+  // 2. If no recent activity found on QuickNode (or it failed), 
+  // use Alchemy's Indexer API to find historical "Last Active" (Deep Search)
+  // This is necessary because standard RPC (QuickNode) cannot efficiently scan 
+  // the entire chain history for "Last Active" without massive timeouts.
+  const alchemyUrl = contract === MOON_CONTRACTS.arbitrumNova ? process.env.ALCHEMY_URL_NOVA :
+                     contract === MOON_CONTRACTS.arbitrumOne ? process.env.ALCHEMY_URL_ONE :
+                     process.env.ALCHEMY_URL_ETH;
+
+  if (alchemyUrl && alchemyUrl.includes('alchemy.com')) {
+    try {
+      const fetchTransfers = async (params: any) => {
+        const response = await fetch(alchemyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: 1,
+            jsonrpc: "2.0",
+            method: "alchemy_getAssetTransfers",
+            params: [{
+              fromBlock: "0x0",
+              toBlock: "latest",
+              contractAddresses: [contract],
+              category: ["erc20"],
+              maxCount: "0x1",
+              order: "desc",
+              ...params
+            }]
+          })
+        });
+        
+        const text = await response.text();
+        try {
+            const data = JSON.parse(text);
+            if (data.error) throw new Error(data.error.message);
+            return data.result?.transfers?.[0];
+        } catch (e) {
+            // Silent fail
+            return null;
+        }
+      };
+
+      const [lastOut, lastIn] = await Promise.all([
+        fetchTransfers({ fromAddress: address }),
+        fetchTransfers({ toAddress: address })
+      ]);
+
+      let lastTransferAt: Date | null = null;
+      let hasOutgoing = !!lastOut;
+
+      // Find the most recent transfer
+      const latest = [lastOut, lastIn].filter(Boolean).sort((a, b) => 
+        parseInt(b.blockNum, 16) - parseInt(a.blockNum, 16)
+      )[0];
+
+      if (latest) {
+        if (latest.metadata?.blockTimestamp) {
+            lastTransferAt = new Date(latest.metadata.blockTimestamp);
+        } else {
+            const block = await withRetry<any>(() => client.getBlock({ blockNumber: BigInt(latest.blockNum) }));
+            lastTransferAt = new Date(Number(block.timestamp) * 1000);
+        }
+      }
+
+      return { lastTransferAt, hasOutgoing };
+
+    } catch (e: any) {
+      // Fallthrough
+    }
+  }
+
+  return { lastTransferAt: null, hasOutgoing: false };
 }
 
 const DISTRIBUTORS = [
@@ -302,7 +343,7 @@ async function main() {
   const RESUME_THRESHOLD_MINUTES = 60;
   const cutoff = new Date(Date.now() - RESUME_THRESHOLD_MINUTES * 60 * 1000);
   
-  console.log(`Fetching addresses not updated in the last ${RESUME_THRESHOLD_MINUTES} minutes (Resume Mode)...`);
+  console.log(`Fetching addresses not updated since ${cutoff.toLocaleTimeString()} (${RESUME_THRESHOLD_MINUTES} min ago)...`);
   
   const holders = await prisma.holder.findMany({
     where: {
@@ -389,14 +430,16 @@ async function main() {
 
           // Only check logs if they have balance OR have outgoing txs (active user)
           // This skips log scanning for inactive empty addresses (spam/dust)
-          // Also skipping log scan for now to avoid Alchemy limits until we have a better solution
-          // if (total > 0 || activity.hasOutgoing) {
-          //    // Add a small delay before getLogs
-          //    await new Promise(r => setTimeout(r, 50)); 
-          //    const logs = await getActivity(novaClient, MOON_CONTRACTS.arbitrumNova, holder.address);
-          //    activity.lastTransferAt = logs.lastTransferAt;
-          //    // We already checked outgoing via nonce, but logs might confirm recent activity
-          // }
+          if (total > 0 || activity.hasOutgoing) {
+             // Add a small delay before getLogs
+             await new Promise(r => setTimeout(r, 50)); 
+             const lastActive = await getActivity(novaClient, MOON_CONTRACTS.arbitrumNova, holder.address);
+             if (lastActive) {
+                 activity.lastTransferAt = lastActive.lastTransferAt;
+                 // If we found logs, we can confirm outgoing status from logs too
+                 if (lastActive.hasOutgoing) activity.hasOutgoing = true;
+             }
+          }
         } catch (err) {
           console.warn(`Failed to get activity for ${holder.address}`, err);
         }

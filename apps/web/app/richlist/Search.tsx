@@ -12,6 +12,12 @@ export default function Search() {
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
+      const currentSearch = params.get('search') || '';
+
+      // Only update URL if the search term has actually changed.
+      // This prevents resetting the page number when navigating pages (which changes searchParams).
+      if (currentSearch === term) return;
+
       if (term) {
         params.set('search', term);
       } else {
@@ -36,7 +42,7 @@ export default function Search() {
         <input 
           type="text" 
           id="search" 
-          className="block w-full p-3 pl-14 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-rcc-orange focus:border-rcc-orange dark:bg-slate-900 dark:border-slate-700 dark:placeholder-gray-400 dark:text-white dark:focus:ring-rcc-orange dark:focus:border-rcc-orange shadow-sm" 
+          className="block w-full py-3 pr-3 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-rcc-orange focus:border-rcc-orange dark:bg-slate-900 dark:border-slate-700 dark:placeholder-gray-400 dark:text-white dark:focus:ring-rcc-orange dark:focus:border-rcc-orange shadow-sm" 
           placeholder="Search address, user, or label..." 
           value={term}
           onChange={(e) => setTerm(e.target.value)}

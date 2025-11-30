@@ -21,14 +21,23 @@ async function debug() {
     }
   }
 
-  // Check RedditUser directly
-  const users = await prisma.redditUser.findMany({
-    where: { username: { contains: 'jwinterm' } }
+  // Check specific address variants
+  const addressLower = '0x41a4922487216655a1b1d10f70ee6b0bf7e75219';
+  const addressMixed = '0x41a4922487216655A1B1d10F70EE6B0bf7e75219';
+
+  const holdersByAddress = await prisma.holder.findMany({
+    where: {
+      address: {
+        in: [addressLower, addressMixed]
+      }
+    }
   });
-  
-  console.log(`\nFound ${users.length} RedditUsers for jwinterm:`);
-  for (const u of users) {
-    console.log(`- Username: ${u.username}, Earned: ${u.earnedMoons}`);
+
+  console.log(`\nFound ${holdersByAddress.length} holders by address lookup:`);
+  for (const h of holdersByAddress) {
+    console.log(`- Address: ${h.address} (Length: ${h.address.length})`);
+    console.log(`  Balance: ${h.totalBalance}`);
+    console.log(`  Username: ${h.username}`);
   }
 }
 

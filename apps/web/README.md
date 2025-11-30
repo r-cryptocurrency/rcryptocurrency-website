@@ -23,6 +23,10 @@ The user-facing frontend for the r/CryptoCurrency ecosystem.
 - **Swaps**:
   - Embedded Uniswap interface for trading MOONs on Arbitrum One.
   - Live feed of recent swaps across supported DEXs (Uniswap V3/V4, Camelot, SushiSwap).
+- **Advertise**:
+  - Information on advertising packages and pricing.
+  - Contact details for subreddit moderators.
+  - Link to the official pitch deck.
 - **Scraper Data**: Visualization of Reddit sentiment and project mentions.
 - **Theming**: 
   - Built-in Dark/Light mode toggle.

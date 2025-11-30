@@ -93,11 +93,36 @@ pnpm seed:labels
 ### `refresh-balances`
 Manually refreshes balances for all holders in the database.
 *   Fetches current balances from RPC for all known addresses.
-*   **Historical Burns**: Scans the blockchain for past transfers to the Burn Address (`0x...dEaD`) and populates the `Burn` table. This is useful for backfilling data that the live monitor might have missed or for initial setup.
-*   **Activity Tracking**: Updates "Last Active" timestamps by scanning recent blocks.
+*   **Activity Tracking**: Updates "Last Active" timestamps by scanning recent blocks (via QuickNode) and deep history (via Alchemy API).
 
 ```bash
 pnpm refresh-balances
+```
+
+### `backfill-burns`
+Scans historical blocks for burn events to populate the Burns page.
+*   Scans Arbitrum Nova and Arbitrum One for transfers to the dead address.
+*   Populates the `Burn` table with historical data.
+
+```bash
+pnpm --filter ledger exec ts-node scripts/backfill-burns.ts
+```
+
+### `calc-dormant-moons`
+Calculates the total number of Moons held by Redditors who have never moved them.
+*   Queries the database for users with a linked Reddit account and `hasOutgoing: false`.
+
+```bash
+pnpm --filter ledger exec ts-node scripts/calc-dormant-moons.ts
+```
+
+### `cleanup-duplicates`
+Removes duplicate holder entries caused by case-sensitivity issues.
+*   Scans for addresses that appear multiple times with different casing.
+*   Merges data and keeps the "best" record (e.g., one with a username).
+
+```bash
+pnpm --filter ledger exec ts-node scripts/cleanup-duplicates.ts
 ```
 
 ### `ingest`

@@ -47,6 +47,7 @@ export default function Navbar() {
                   <NavLink href="/burns" label="Burns" mobile onClick={() => setIsOpen(false)} />
                   <NavLink href="/calendar" label="Calendar" mobile onClick={() => setIsOpen(false)} />
                   <NavLink href="/swap" label="Swap" mobile onClick={() => setIsOpen(false)} />
+                  <NavLink href="/advertise" label="Advertise" mobile onClick={() => setIsOpen(false)} />
                   <a 
                     href="https://www.reddit.com/r/CryptoCurrency/" 
                     target="_blank" 

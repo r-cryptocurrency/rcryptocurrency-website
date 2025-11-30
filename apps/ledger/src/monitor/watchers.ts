@@ -39,9 +39,16 @@ export function setupBurnWatcher(
           console.log(`🔥 [${monitor.chainName}] BURN DETECTED: ${amountFormatted} MOONs from ${from}`);
 
           try {
-            await prisma.burn.create({
-              data: {
+            await prisma.burn.upsert({
+              where: { txHash: hash },
+              create: {
                 txHash: hash,
+                blockNumber: log.blockNumber || 0n,
+                amount: amount,
+                chain: monitor.chainName,
+                sender: from,
+              },
+              update: {
                 blockNumber: log.blockNumber || 0n,
                 amount: amount,
                 chain: monitor.chainName,
@@ -142,9 +149,20 @@ export function setupSwapWatcher(
                     dbTokenOut = sym0; dbAmountOut = a0Out;
                 }
 
-                await prisma.swap.create({
-                    data: {
+                await prisma.swap.upsert({
+                    where: { txHash: hash },
+                    create: {
                         txHash: hash,
+                        blockNumber: log.blockNumber || 0n,
+                        chain: monitor.chainName,
+                        dex: poolConfig.name,
+                        amountIn: dbAmountIn,
+                        amountOut: dbAmountOut,
+                        tokenIn: dbTokenIn,
+                        tokenOut: dbTokenOut,
+                        maker: maker,
+                    },
+                    update: {
                         blockNumber: log.blockNumber || 0n,
                         chain: monitor.chainName,
                         dex: poolConfig.name,
@@ -243,9 +261,20 @@ export function setupSwapWatcher(
                      dbTokenOut = sym0; dbAmountOut = abs0;
                  }
 
-                 await prisma.swap.create({
-                    data: {
+                 await prisma.swap.upsert({
+                    where: { txHash: hash },
+                    create: {
                         txHash: hash,
+                        blockNumber: log.blockNumber || 0n,
+                        chain: monitor.chainName,
+                        dex: poolConfig.name,
+                        amountIn: dbAmountIn,
+                        amountOut: dbAmountOut,
+                        tokenIn: dbTokenIn,
+                        tokenOut: dbTokenOut,
+                        maker: maker,
+                    },
+                    update: {
                         blockNumber: log.blockNumber || 0n,
                         chain: monitor.chainName,
                         dex: poolConfig.name,
@@ -331,9 +360,20 @@ export function setupSwapWatcher(
                    dbTokenOut = poolInfo.token0.symbol; dbAmountOut = absAmount0;
                }
 
-               await prisma.swap.create({
-                   data: {
+               await prisma.swap.upsert({
+                   where: { txHash: hash },
+                   create: {
                        txHash: hash,
+                       blockNumber: log.blockNumber || 0n,
+                       chain: monitor.chainName,
+                       dex: poolConfig.name,
+                       amountIn: dbAmountIn,
+                       amountOut: dbAmountOut,
+                       tokenIn: dbTokenIn,
+                       tokenOut: dbTokenOut,
+                       maker: maker,
+                   },
+                   update: {
                        blockNumber: log.blockNumber || 0n,
                        chain: monitor.chainName,
                        dex: poolConfig.name,

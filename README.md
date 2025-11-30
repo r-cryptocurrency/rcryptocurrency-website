@@ -27,9 +27,10 @@ rcryptocurrency-site/
 
 ---
 
-## 🚀 Applications
+## 🚀 Applications and Packages
 
 ### 1. Web Dashboard (`apps/web`)
+*   **README**: [apps/web/README.md](./apps/web/README.md)
 *   **Tech Stack**: Next.js 13, Tailwind CSS, Tremor, Next-Themes.
 *   **Function**: The user-facing frontend. It replicates the legacy site's aesthetic while injecting real-time data from the database.
 *   **Features**:
@@ -41,8 +42,10 @@ rcryptocurrency-site/
     *   **Timeline**: A history of the MOON token ecosystem.
     *   **Burns**: Real-time tracking of MOON burns across all chains.
     *   **Swaps**: Live feed of DEX swaps on Arbitrum One and Nova.
+    *   **Advertise**: Information on advertising packages and contact details.
 
 ### 2. Ledger (`apps/ledger`)
+*   **README**: [apps/ledger/README.md](./apps/ledger/README.md)
 *   **Tech Stack**: Node.js, Viem.
 *   **Function**: Indexes blockchain events for MOON tokens across Arbitrum Nova, Arbitrum One, and Ethereum Mainnet.
 *   **Key Logic**:
@@ -53,17 +56,25 @@ rcryptocurrency-site/
     *   **Management**: Includes scripts to manually label addresses (e.g., Exchanges).
 
 ### 3. Oracle (`apps/oracle`)
+*   **README**: [apps/oracle/README.md](./apps/oracle/README.md)
 *   **Tech Stack**: Node.js, Axios, Cron.
 *   **Function**: Fetches high-level stats.
     *   **CoinGecko**: MOON price, volume, market cap. (Supports API Key via `COINGECKO_API_KEY`)
     *   **Reddit API**: Subreddit subscriber count, active users.
 
 ### 4. Scraper (`apps/scraper`)
+*   **README**: [apps/scraper/README.md](./apps/scraper/README.md)
 *   **Tech Stack**: Node.js, Axios, Natural (NLP).
 *   **Function**: Deep dives into subreddit content.
     *   **Public JSON API**: Scrapes `r/CryptoCurrency/new.json` without OAuth, using a custom User-Agent.
     *   **Sentiment Analysis**: Analyzes post titles/bodies for positive/negative sentiment.
     *   **Project Mentions**: Tracks mentions of specific coins (BTC, ETH, MOON, etc.).
+
+### 5. Shared Packages
+*   **Database** (`packages/database`): Shared Prisma Schema & Client. [README](./packages/database/README.md)
+*   **Chain Data** (`packages/chain-data`): Shared Blockchain Constants (ABIs, Addresses). [README](./packages/chain-data/README.md)
+*   **UI** (`packages/ui`): Shared React Components.
+*   **Configs**: Shared TypeScript (`packages/tsconfig`) and ESLint (`packages/eslint-config`) configurations.
 
 ## ⚡ Quick Start
 
@@ -89,6 +100,10 @@ RPC_URL_NOVA=https://nova.arbitrum.io/rpc
 RPC_URL_ONE=https://arb1.arbitrum.io/rpc
 RPC_URL_ETH=https://eth.llamarpc.com
 
+# Optional: Alchemy Fallbacks (Recommended for deep history)
+ALCHEMY_URL_NOVA=...
+ALCHEMY_URL_ONE=...
+
 TELEGRAM_BOT_TOKEN=your_token
 TELEGRAM_CHANNEL_ID=@your_channel
 MOON_NOTIFICATION_THRESHOLD=50
@@ -99,6 +114,14 @@ DATABASE_URL="postgresql://rcc_user:rcc_password@localhost:5433/rcc_db"
 ### 3. Database Setup
 
 See [packages/database/README.md](./packages/database/README.md) for full details.
+
+```bash
+# Start PostgreSQL container
+sudo docker compose up -d
+
+# Push schema to database
+pnpm --filter @rcryptocurrency/database db:push
+```
 
 ## 📦 Database Migration & Backup
 
@@ -171,53 +194,25 @@ The `monitor-moons` script is critical for the "Burns" and "Swaps" pages. It sho
 pm2 start apps/ledger/scripts/monitor-moons.ts --interpreter ./node_modules/.bin/ts-node --name moon-monitor
 ```
 
+### Scripts & Maintenance
 
-5.  **Populate Balances**:
+The `apps/ledger` package contains several utility scripts for maintaining the data integrity.
+
+*   **Refresh Balances**: Updates all user balances from the blockchain.
     ```bash
-    # Fetch live balances from blockchain
     pnpm --filter ledger refresh-balances
     ```
-
----
-
-## 🛠 Setup & Installation
-
-### Prerequisites
-*   Node.js 18+
-*   pnpm (`npm i -g pnpm`)
-*   Docker & Docker Compose (for PostgreSQL)
-
-### Quick Start
-
-1.  **Install Dependencies**:
+*   **Backfill Burns**: Scans historical blocks for burn events to populate the Burns page.
     ```bash
-    pnpm install
+    pnpm --filter ledger exec ts-node scripts/backfill-burns.ts
     ```
-
-2.  **Environment Setup**:
-    *   Copy `.env.example` to `.env` (if available) or ensure `.env` exists in the root.
-    *   Update `RPC_URL_*` and `TELEGRAM_*` variables.
-
-3.  **Database Setup**:
-    *   Start the PostgreSQL container:
-        ```bash
-        sudo docker compose up -d
-        ```
-    *   Push the schema to the database:
-        ```bash
-        export DATABASE_URL="postgresql://rcc_user:rcc_password@localhost:5433/rcc_db"
-        pnpm --filter @rcryptocurrency/database db:push
-        ```
-
-4.  **Run Development Server**:
+*   **Calculate Dormant Moons**: Calculates total Moons held by Redditors who have never moved them.
     ```bash
-    pnpm dev
+    pnpm --filter ledger exec ts-node scripts/calc-dormant-moons.ts
     ```
-    This starts all apps (Web, Ledger, Oracle, Scraper) in parallel.
-
-5.  **Run Moon Monitor**:
+*   **Cleanup Duplicates**: Removes duplicate holder entries (case-sensitivity issues).
     ```bash
-    pnpm --filter ledger monitor-moons
+    pnpm --filter ledger exec ts-node scripts/cleanup-duplicates.ts
     ```
 
 ---
@@ -232,16 +227,14 @@ pm2 start apps/ledger/scripts/monitor-moons.ts --interpreter ./node_modules/.bin
 - [x] **Scraper App**: Implemented with `snoowrap` and `natural`. Includes **Mock Data** generation for dev.
 - [x] **Oracle App**: Basic structure for fetching CoinGecko prices.
 - [x] **Ledger App**: Viem client setup for multi-chain indexing.
-
-### To Do / Next Steps
-- [ ] **Web Integration**:
-    - [ ] Connect the "Richlist" page in `apps/web` to the `Holder` table.
-    - [ ] Create a "Dashboard" page showing MOON price (from Oracle) vs. Reddit Activity (from Scraper).
-- [ ] **Ledger Refinement**:
-    - [ ] Test the indexer against live RPC endpoints (Arbitrum Nova/One).
-    - [ ] Handle reorgs and missed blocks more robustly.
-- [ ] **Deployment Pipeline**:
-    - [ ] Set up Dockerfiles for each app (using `turbo prune`).
+- [x] **Web Integration**:
+    - [x] Connect the "Richlist" page in `apps/web` to the `Holder` table.
+    - [x] Create a "Dashboard" page showing MOON price (from Oracle) vs. Reddit Activity (from Scraper).
+- [x] **Ledger Refinement**:
+    - [x] Test the indexer against live RPC endpoints (Arbitrum Nova/One).
+    - [x] Handle reorgs and missed blocks more robustly.
+- [x] **Deployment Pipeline**:
+    - [x] Set up Dockerfiles for each app (using `turbo prune`).
     - [ ] Configure CI/CD (GitHub Actions) to build and push images.
 
 ---
