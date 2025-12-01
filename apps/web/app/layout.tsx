@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: 'rCryptoCurrency',
   description: 'The Biggest Crypto Community on the Internet!',
   icons: {
-    icon: '/img/moon.webp',
+    icon: '/img/favicon.webp',
   },
 }
 

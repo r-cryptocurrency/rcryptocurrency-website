@@ -3,6 +3,7 @@ import { prisma } from '@rcryptocurrency/database';
 import { Card, Metric, Text, Flex, Grid } from "@tremor/react";
 import Background from '../components/Background';
 import InteractiveMoon from '../components/InteractiveMoon';
+import Timeline from '../components/Timeline';
 
 export const dynamic = 'force-dynamic';
 
@@ -118,72 +119,7 @@ export default async function Home() {
       </section>
 
       {/* Timeline Section */}
-      <section id="timeline" className="py-20 bg-white/50 dark:bg-slate-950/50 relative">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center text-slate-900 dark:text-white mb-16">MOON History</h2>
-          <div className="relative space-y-12">
-            {/* Central Line */}
-            <div className="absolute left-4 md:left-1/2 top-0 bottom-0 w-0.5 bg-rcc-orange/50 md:-ml-[1px]"></div>
-            
-            {/* Timeline Item 1 */}
-            <div className="relative pl-8 md:pl-0">
-              <div className="absolute left-[-5px] md:left-1/2 top-0 w-4 h-4 rounded-full bg-rcc-orange shadow-[0_0_10px_rgba(227,97,57,0.8)] md:-ml-[8px] z-10"></div>
-              <div className="md:flex md:justify-between md:items-center md:flex-row-reverse">
-                <div className="md:w-[45%] mb-2 md:mb-0">
-                  <span className="text-rcc-orange font-bold">Nov 2024</span>
-                </div>
-                <div className="md:w-[45%] bg-white/80 dark:bg-slate-900/90 backdrop-blur-sm p-6 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-rcc-orange/50 transition-colors shadow-sm">
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Unstoppable Domains</h3>
-                  <p className="text-slate-600 dark:text-slate-400">Partnered with Unstoppable Domains to launch .MOON domains.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Timeline Item 2 */}
-            <div className="relative pl-8 md:pl-0">
-              <div className="absolute left-[-5px] md:left-1/2 top-0 w-4 h-4 rounded-full bg-rcc-orange shadow-[0_0_10px_rgba(227,97,57,0.8)] md:-ml-[8px] z-10"></div>
-              <div className="md:flex md:justify-between md:items-center">
-                <div className="md:w-[45%] mb-2 md:mb-0 md:text-right">
-                  <span className="text-rcc-orange font-bold">June 2024</span>
-                </div>
-                <div className="md:w-[45%] bg-white/80 dark:bg-slate-900/90 backdrop-blur-sm p-6 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-rcc-orange/50 transition-colors shadow-sm">
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Moonrise</h3>
-                  <p className="text-slate-600 dark:text-slate-400">Moderators restarted Moon distributions and formed the CCMC DAO.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Timeline Item 3 */}
-            <div className="relative pl-8 md:pl-0">
-              <div className="absolute left-[-5px] md:left-1/2 top-0 w-4 h-4 rounded-full bg-rcc-orange shadow-[0_0_10px_rgba(227,97,57,0.8)] md:-ml-[8px] z-10"></div>
-              <div className="md:flex md:justify-between md:items-center md:flex-row-reverse">
-                <div className="md:w-[45%] mb-2 md:mb-0">
-                  <span className="text-rcc-orange font-bold">March 2024</span>
-                </div>
-                <div className="md:w-[45%] bg-white/80 dark:bg-slate-900/90 backdrop-blur-sm p-6 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-rcc-orange/50 transition-colors shadow-sm">
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Arbitrum One</h3>
-                  <p className="text-slate-600 dark:text-slate-400">Moons can now be bridged to Arbitrum One, a much more active chain than Nova.</p>
-                </div>
-              </div>
-            </div>
-
-             {/* Timeline Item 4 */}
-             <div className="relative pl-8 md:pl-0">
-              <div className="absolute left-[-5px] md:left-1/2 top-0 w-4 h-4 rounded-full bg-rcc-orange shadow-[0_0_10px_rgba(227,97,57,0.8)] md:-ml-[8px] z-10"></div>
-              <div className="md:flex md:justify-between md:items-center">
-                <div className="md:w-[45%] mb-2 md:mb-0 md:text-right">
-                  <span className="text-rcc-orange font-bold">October 2023</span>
-                </div>
-                <div className="md:w-[45%] bg-white/80 dark:bg-slate-900/90 backdrop-blur-sm p-6 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-rcc-orange/50 transition-colors shadow-sm">
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sunsetting of Community Points</h3>
-                  <p className="text-slate-600 dark:text-slate-400">Reddit Admins ends their involvement in Moons. They renounced the Moons contract and burned their ~40M Moons.</p>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </section>
+      <Timeline />
 
       {/* Footer */}
       <footer id="site-footer" className="bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 py-12 relative z-10 transition-colors duration-300">

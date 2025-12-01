@@ -1,4 +1,4 @@
-import { createPublicClient, http, parseAbiItem, Log } from 'viem';
+import { createPublicClient, http, parseAbiItem, Log, fallback } from 'viem';
 import { arbitrum, mainnet } from 'viem/chains';
 import { MOON_CONTRACTS } from '@rcryptocurrency/chain-data';
 import { prisma } from '@rcryptocurrency/database';
@@ -25,19 +25,43 @@ const arbitrumNova = {
 } as const;
 
 // Initialize Clients with specific RPCs
+
+// Nova
+const novaTransports = [];
+if (process.env.RPC_URL_NOVA) novaTransports.push(http(process.env.RPC_URL_NOVA));
+if (process.env.ALCHEMY_URL_NOVA) novaTransports.push(http(process.env.ALCHEMY_URL_NOVA));
+if (process.env.QUICKNODE_URL_NOVA) novaTransports.push(http(process.env.QUICKNODE_URL_NOVA));
+novaTransports.push(http("https://nova.arbitrum.io/rpc"));
+
 const novaClient = createPublicClient({
   chain: arbitrumNova,
-  transport: http(process.env.RPC_URL_NOVA || "https://nova.arbitrum.io/rpc") 
+  transport: fallback(novaTransports) 
 });
+
+// One
+const oneTransports = [];
+if (process.env.RPC_URL_ONE) oneTransports.push(http(process.env.RPC_URL_ONE));
+if (process.env.ALCHEMY_URL_ONE) oneTransports.push(http(process.env.ALCHEMY_URL_ONE));
+if (process.env.QUICKNODE_URL_ONE) oneTransports.push(http(process.env.QUICKNODE_URL_ONE));
+if (process.env.INFURA_API_KEY) oneTransports.push(http(`https://arbitrum-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`));
+oneTransports.push(http("https://arb1.arbitrum.io/rpc"));
 
 const oneClient = createPublicClient({
   chain: arbitrum,
-  transport: http(process.env.RPC_URL_ONE || "https://arb1.arbitrum.io/rpc")
+  transport: fallback(oneTransports)
 });
+
+// Eth
+const ethTransports = [];
+if (process.env.RPC_URL_ETH) ethTransports.push(http(process.env.RPC_URL_ETH));
+if (process.env.ALCHEMY_URL_ETH) ethTransports.push(http(process.env.ALCHEMY_URL_ETH));
+if (process.env.QUICKNODE_URL_ETH) ethTransports.push(http(process.env.QUICKNODE_URL_ETH));
+if (process.env.INFURA_API_KEY) ethTransports.push(http(`https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`));
+ethTransports.push(http("https://eth.llamarpc.com"));
 
 const ethClient = createPublicClient({
   chain: mainnet,
-  transport: http(process.env.RPC_URL_ETH || "https://rpc.ankr.com/eth")
+  transport: fallback(ethTransports)
 });
 
 // ERC-20 Transfer Event Signature

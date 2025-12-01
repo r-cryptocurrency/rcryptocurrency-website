@@ -36,10 +36,16 @@ export async function main() {
   console.log(`📢 Notifications > ${NOTIFICATION_THRESHOLD} MOONs to ${CHANNEL_ID}`);
 
   // --- Arbitrum Nova ---
-  // Strategy: QuickNode (if env set) -> Public RPC
+  // Strategy: Free RPC -> Alchemy -> QuickNode -> Public RPC
   const novaTransports = [];
   if (process.env.RPC_URL_NOVA) {
       novaTransports.push(http(process.env.RPC_URL_NOVA));
+  }
+  if (process.env.ALCHEMY_URL_NOVA) {
+      novaTransports.push(http(process.env.ALCHEMY_URL_NOVA));
+  }
+  if (process.env.QUICKNODE_URL_NOVA) {
+      novaTransports.push(http(process.env.QUICKNODE_URL_NOVA));
   }
   novaTransports.push(http("https://nova.arbitrum.io/rpc"));
 
@@ -54,13 +60,19 @@ export async function main() {
   novaMonitor.start();
 
   // --- Arbitrum One ---
-  // Strategy: Infura (if env set) -> Public RPC -> LlamaRPC
+  // Strategy: Free RPC -> Alchemy -> QuickNode -> Infura -> Public RPC
   const oneTransports = [];
-  if (process.env.INFURA_API_KEY) {
-      oneTransports.push(http(`https://arbitrum-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`));
-  }
   if (process.env.RPC_URL_ONE) {
       oneTransports.push(http(process.env.RPC_URL_ONE));
+  }
+  if (process.env.ALCHEMY_URL_ONE) {
+      oneTransports.push(http(process.env.ALCHEMY_URL_ONE));
+  }
+  if (process.env.QUICKNODE_URL_ONE) {
+      oneTransports.push(http(process.env.QUICKNODE_URL_ONE));
+  }
+  if (process.env.INFURA_API_KEY) {
+      oneTransports.push(http(`https://arbitrum-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`));
   }
   oneTransports.push(http("https://arb1.arbitrum.io/rpc"));
 
@@ -68,7 +80,8 @@ export async function main() {
     chain: arbitrum,
     transport: fallback(oneTransports),
   });
-  const oneMonitor = new ChainMonitor('Arbitrum One', oneClient, 20000, 1000n);
+  // Use conservative block range (100) to be safe with free tiers
+  const oneMonitor = new ChainMonitor('Arbitrum One', oneClient, 20000, 100n);
   setupBurnWatcher(oneMonitor, MOON_CONTRACTS.arbitrumOne, 'https://arbiscan.io');
   setupSwapWatcher(oneMonitor, POOLS.ONE_CAMELOT_V3, 'https://arbiscan.io');
   setupSwapWatcher(oneMonitor, POOLS.ONE_UNI_V3, 'https://arbiscan.io');
@@ -76,13 +89,19 @@ export async function main() {
   oneMonitor.start();
 
   // --- Ethereum Mainnet ---
-  // Strategy: Infura (if env set) -> Public RPC -> LlamaRPC
+  // Strategy: Free RPC -> Alchemy -> QuickNode -> Infura -> Public RPC
   const ethTransports = [];
-  if (process.env.INFURA_API_KEY) {
-      ethTransports.push(http(`https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`));
-  }
   if (process.env.RPC_URL_ETH) {
       ethTransports.push(http(process.env.RPC_URL_ETH));
+  }
+  if (process.env.ALCHEMY_URL_ETH) {
+      ethTransports.push(http(process.env.ALCHEMY_URL_ETH));
+  }
+  if (process.env.QUICKNODE_URL_ETH) {
+      ethTransports.push(http(process.env.QUICKNODE_URL_ETH));
+  }
+  if (process.env.INFURA_API_KEY) {
+      ethTransports.push(http(`https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`));
   }
   ethTransports.push(http("https://eth.llamarpc.com"));
 
@@ -90,7 +109,7 @@ export async function main() {
     chain: mainnet,
     transport: fallback(ethTransports),
   });
-  const ethMonitor = new ChainMonitor('Ethereum', ethClient, 60000, 1000n);
+  const ethMonitor = new ChainMonitor('Ethereum', ethClient, 60000, 100n);
   setupBurnWatcher(ethMonitor, MOON_CONTRACTS.ethereum, 'https://etherscan.io');
   ethMonitor.start();
   

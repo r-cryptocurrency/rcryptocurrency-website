@@ -4,9 +4,26 @@ import { analyzeSentiment, findProjectMentions } from './analyzer';
 
 const USER_AGENT = 'Reddit-Scraper/1.0 (by /u/TheMoonDistributor)';
 const SUBREDDIT = 'CryptoCurrency';
-const DELAY_MS = 2000;
+const DELAY_MS = 5000;
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function fetchWithRetry(url: string, retries = 3, backoff = 5000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await axios.get(url, { headers: { 'User-Agent': USER_AGENT } });
+    } catch (error: any) {
+      if (error.response?.status === 429) {
+        console.warn(`Rate limited (429) on ${url}. Waiting ${backoff/1000}s...`);
+        await delay(backoff);
+        backoff *= 2; // Exponential backoff
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error(`Failed to fetch ${url} after ${retries} retries`);
+}
 
 async function upsertWithRetry(operation: () => Promise<any>, retries = 3) {
   for (let i = 0; i < retries; i++) {
@@ -83,9 +100,7 @@ export async function runScraper(sortType: 'new' | 'hot' | 'top' = 'new') {
       try {
         await delay(DELAY_MS); // Respect rate limits
         const commentsUrl = `https://www.reddit.com/comments/${post.id}.json`;
-        const commentRes = await axios.get(commentsUrl, {
-          headers: { 'User-Agent': USER_AGENT }
-        });
+        const commentRes = await fetchWithRetry(commentsUrl);
 
         const comments = commentRes.data[1]?.data?.children || [];
 

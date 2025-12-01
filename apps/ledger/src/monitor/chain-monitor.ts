@@ -74,7 +74,24 @@ export class ChainMonitor {
                 });
                 pendingLogs.push({ watcher, logs });
             } catch (e: any) {
-                if (e?.message?.includes('429') || e?.status === 429 || e?.details?.includes('Too Many Requests')) {
+                const errorString = JSON.stringify(e, Object.getOwnPropertyNames(e));
+                const isBlockRangeError = 
+                    e?.message?.includes('block range') || 
+                    e?.details?.includes('block range') || 
+                    e?.details?.includes('-32600') ||
+                    errorString.includes('block range');
+
+                if (isBlockRangeError) {
+                    const newRange = this.maxBlockRange / 2n;
+                    if (newRange < 1n) {
+                         console.error(`[${this.chainName}] Block range too small to reduce further.`);
+                         fetchFailed = true;
+                    } else {
+                        console.warn(`[${this.chainName}] Block range limit hit. Reducing maxBlockRange from ${this.maxBlockRange} to ${newRange}.`);
+                        this.maxBlockRange = newRange;
+                        fetchFailed = true; // Retry in next loop
+                    }
+                } else if (e?.message?.includes('429') || e?.status === 429 || e?.details?.includes('Too Many Requests')) {
                     console.warn(`[${this.chainName}] Rate limited (429) polling ${watcher.name}. Pausing for 30s...`);
                     setTimeout(() => this.loop(), 30000);
                     return; 

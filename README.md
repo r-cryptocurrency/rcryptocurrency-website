@@ -96,6 +96,7 @@ Copy `.env.example` to `.env` in the root directory (or create it manually):
 
 ```bash
 # .env
+# Free Public RPCs (Primary)
 RPC_URL_NOVA=https://nova.arbitrum.io/rpc
 RPC_URL_ONE=https://arb1.arbitrum.io/rpc
 RPC_URL_ETH=https://eth.llamarpc.com
@@ -103,6 +104,12 @@ RPC_URL_ETH=https://eth.llamarpc.com
 # Optional: Alchemy Fallbacks (Recommended for deep history)
 ALCHEMY_URL_NOVA=...
 ALCHEMY_URL_ONE=...
+ALCHEMY_URL_ETH=...
+
+# Optional: QuickNode Fallbacks
+QUICKNODE_URL_NOVA=...
+QUICKNODE_URL_ONE=...
+QUICKNODE_URL_ETH=...
 
 TELEGRAM_BOT_TOKEN=your_token
 TELEGRAM_CHANNEL_ID=@your_channel

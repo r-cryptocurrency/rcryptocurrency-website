@@ -7,11 +7,17 @@ export const prisma = new PrismaClient();
 
 // Setup Mainnet Client for ENS Resolution
 const ethTransports = [];
-if (process.env.INFURA_API_KEY) {
-    ethTransports.push(http(`https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`));
-}
 if (process.env.RPC_URL_ETH) {
     ethTransports.push(http(process.env.RPC_URL_ETH));
+}
+if (process.env.ALCHEMY_URL_ETH) {
+    ethTransports.push(http(process.env.ALCHEMY_URL_ETH));
+}
+if (process.env.QUICKNODE_URL_ETH) {
+    ethTransports.push(http(process.env.QUICKNODE_URL_ETH));
+}
+if (process.env.INFURA_API_KEY) {
+    ethTransports.push(http(`https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`));
 }
 ethTransports.push(http("https://eth.llamarpc.com"));
 
