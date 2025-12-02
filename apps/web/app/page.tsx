@@ -56,13 +56,13 @@ export default async function Home() {
                   <h3 className="text-slate-600 dark:text-slate-400 text-sm font-medium mb-2">MOON Price</h3>
                   <div className="flex items-center gap-2 mb-1">
                     <p className="text-3xl font-bold text-slate-900 dark:text-white">
-                      ${stats.marketData?.priceUsd.toFixed(4) || '0.0000'}
+                      ${stats.marketData?.priceUsd?.toFixed(4) || '0.0000'}
                     </p>
                     <i className="fa-solid fa-moon text-rcc-yellow animate-pulse text-xl"></i>
                   </div>
                   <p className={`text-sm font-medium ${(stats.marketData?.change24h || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                     {(stats.marketData?.change24h || 0) >= 0 ? '+' : ''}
-                    {stats.marketData?.change24h.toFixed(2)}% (24h)
+                    {stats.marketData?.change24h?.toFixed(2) || '0.00'}% (24h)
                   </p>
                 </div>
 

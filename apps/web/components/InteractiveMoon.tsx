@@ -28,6 +28,7 @@ export default function InteractiveMoon() {
           src="/img/moon.webp"
           alt="MOON Token"
           fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           className="object-contain drop-shadow-2xl"
           priority
         />

@@ -5,8 +5,8 @@
   "main": "index.ts",
   "types": "index.ts",
   "scripts": {
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push"
+    "db:generate": "set -a; . ../../.env; set +a; prisma generate",
+    "db:push": "set -a; . ../../.env; set +a; prisma db push"
   },
   "dependencies": {
     "@prisma/client": "^4.14.0"

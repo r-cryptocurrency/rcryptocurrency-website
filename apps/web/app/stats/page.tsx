@@ -132,7 +132,7 @@ export default async function StatsPage({ searchParams }: { searchParams: { rang
                       <td className="px-4 py-3 text-slate-600 dark:text-gray-400 font-mono text-center">{post.score}</td>
                       <td className="px-4 py-3 text-slate-600 dark:text-gray-400 font-mono text-center">{post.numComments}</td>
                       <td className="px-4 py-3 text-center">
-                        {post.sentiment !== null ? (
+                        {post.sentiment != null ? (
                           <span className={`font-bold px-2 py-1 rounded text-xs inline-block w-16 text-center ${
                             post.sentiment > 0.05 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 
                             post.sentiment < -0.05 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 

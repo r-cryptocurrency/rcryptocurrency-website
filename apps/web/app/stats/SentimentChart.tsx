@@ -15,7 +15,7 @@ export default function SentimentChart({ data }: { data: ChartData[] }) {
       index="date"
       categories={["Sentiment"]}
       colors={["orange"]}
-      valueFormatter={(number) => number.toFixed(2)}
+      valueFormatter={(number) => (number ?? 0).toFixed(2)}
       showLegend={false}
       yAxisWidth={40}
     />
