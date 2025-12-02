@@ -33,6 +33,39 @@ async function main() {
   console.log(`Total Moons held by Redditors who never moved them: ${total.toLocaleString()}`);
   console.log(`Number of such accounts: ${count.toLocaleString()}`);
   console.log('------------------------------------------------');
+
+  // Top 10 dormant holders
+  const topDormant = await prisma.holder.findMany({
+    where: {
+      username: {
+        not: null,
+      },
+      hasOutgoing: false,
+    },
+    orderBy: {
+      totalBalance: 'desc',
+    },
+    take: 10,
+    select: {
+      username: true,
+      totalBalance: true,
+      lastTransferAt: true,
+    },
+  });
+
+  console.log('\nTop 10 Dormant Redditor Wallets:');
+  console.log('------------------------------------------------');
+  console.log('Username'.padEnd(25) + 'Balance'.padEnd(20) + 'Last Received');
+  console.log('------------------------------------------------');
+  
+  topDormant.forEach(holder => {
+    const username = holder.username || 'Unknown';
+    const balance = holder.totalBalance.toLocaleString();
+    const lastReceived = holder.lastTransferAt ? holder.lastTransferAt.toISOString().split('T')[0] : 'N/A';
+    
+    console.log(`${username.padEnd(25)}${balance.padEnd(20)}${lastReceived}`);
+  });
+  console.log('------------------------------------------------');
 }
 
 main()

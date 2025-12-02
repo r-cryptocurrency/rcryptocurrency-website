@@ -88,7 +88,7 @@ export default async function Home() {
                 </div>
 
                 <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-6 rounded-xl border border-orange-100 dark:border-slate-800 sm:col-span-2 flex flex-col justify-center items-center text-center">
-                  <h3 className="text-slate-600 dark:text-slate-400 text-sm font-medium mb-2">Subscribers</h3>
+                  <h3 className="text-slate-600 dark:text-slate-400 text-sm font-medium mb-2">Subreddit Subscribers</h3>
                   <p className="text-4xl font-bold text-slate-900 dark:text-white">
                     {(stats.marketData?.redditSubscribers || 0).toLocaleString()}
                   </p>

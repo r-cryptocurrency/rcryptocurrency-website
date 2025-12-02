@@ -246,26 +246,147 @@ The `apps/ledger` package contains several utility scripts for maintaining the d
 
 ---
 
-## 🚢 Deployment Guide
+## 🚢 Deployment Guide (Production)
 
-When ready to deploy to production (e.g., Vercel, Railway, or VPS):
+This guide details how to deploy the stack to a VPS (App Server) while using a separate machine for SSL termination/Reverse Proxy (e.g., Nginx Proxy Manager).
 
-1.  **Database**: Switch `packages/database/prisma/schema.prisma` from `sqlite` to `postgresql`.
-    ```prisma
-    datasource db {
-      provider = "postgresql"
-      url      = env("DATABASE_URL")
-    }
-    ```
-2.  **Build**:
-    ```bash
-    pnpm build
-    ```
-3.  **Docker**:
-    Use the `turbo prune` command to create lightweight Docker images for each service.
-    ```bash
-    # Example for web app
-    turbo prune --scope=web --docker
-    ```
-4.  **Orchestration**:
-    Use `docker-compose` or Kubernetes to run the `web`, `ledger`, `oracle`, and `scraper` containers side-by-side, all connecting to the same PostgreSQL instance.
+### 1. Database Verification
+Ensure `packages/database/prisma/schema.prisma` is configured for PostgreSQL (default):
+```prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+```
+
+### 2. Docker Configuration
+Since this is a Turborepo, we need to create Dockerfiles that prune the workspace to only include necessary dependencies for each app.
+
+**Create `apps/web/Dockerfile`:**
+```dockerfile
+FROM node:18-alpine AS base
+
+FROM base AS builder
+# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+# Set working directory
+RUN npm install turbo --global
+COPY . .
+RUN turbo prune --scope=web --docker
+
+# Add lockfile and package.json's of isolated subworkspace
+FROM base AS installer
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# First install dependencies (as they change less often)
+COPY .gitignore .gitignore
+COPY --from=builder /app/out/json/ .
+COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+RUN npm install -g pnpm
+RUN pnpm install
+
+# Build the project and its dependencies
+COPY --from=builder /app/out/full/ .
+COPY turbo.json turbo.json
+RUN pnpm turbo run build --filter=web...
+
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV production
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=installer /app/apps/web/next.config.js .
+COPY --from=installer /app/apps/web/package.json .
+
+# Automatically leverage output traces to reduce image size
+COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
+COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=installer --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
+
+USER nextjs
+EXPOSE 3000
+ENV PORT 3000
+CMD ["node", "apps/web/server.js"]
+```
+*(Note: You will need similar Dockerfiles for `ledger`, `oracle`, and `scraper`, adjusting the scope and CMD).*
+
+### 3. Orchestration (docker-compose.prod.yml)
+Create a `docker-compose.prod.yml` on your App Server:
+
+```yaml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: rcc_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: rcc_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - rcc_net
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: always
+    ports:
+      - "3000:3000" # Expose to host for Reverse Proxy
+    environment:
+      - DATABASE_URL=postgresql://rcc_user:${DB_PASSWORD}@postgres:5432/rcc_db
+    depends_on:
+      - postgres
+    networks:
+      - rcc_net
+
+  # Add other services (ledger, oracle, scraper) similarly...
+
+networks:
+  rcc_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+```
+
+### 4. Reverse Proxy Setup (Multi-Machine)
+
+If you are running **Nginx Proxy Manager (NPM)** on a separate machine (Proxy Server) to handle SSL for `rcryptocurrency.com`:
+
+1.  **App Server (Machine A)**:
+    *   Ensure the `web` container is running and mapped to port `3000` (as shown above).
+    *   **Firewall**: Allow incoming traffic on port `3000` *only* from the IP address of the Proxy Server.
+        ```bash
+        # Example UFW command
+        sudo ufw allow from <PROXY_SERVER_IP> to any port 3000
+        ```
+
+2.  **Proxy Server (Machine B)**:
+    *   Log in to Nginx Proxy Manager.
+    *   Create a new **Proxy Host**.
+    *   **Domain Names**: `rcryptocurrency.com`
+    *   **Scheme**: `http`
+    *   **Forward Hostname / IP**: `<APP_SERVER_IP>` (Internal IP if on same VPC, else Public IP)
+    *   **Forward Port**: `3000`
+    *   **Websockets Support**: Enable this (Required for Next.js).
+    *   **SSL**: Request a new Let's Encrypt certificate and enable "Force SSL".
+
+### 5. Deployment Commands
+
+```bash
+# 1. Set environment variables
+export DB_PASSWORD=your_secure_password
+
+# 2. Build and Run
+docker compose -f docker-compose.prod.yml up -d --build
+
+# 3. Initialize Database (Run inside the web or ledger container)
+docker compose -f docker-compose.prod.yml exec web pnpm db:push
+```
