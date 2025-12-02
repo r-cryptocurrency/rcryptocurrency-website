@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
 
 // Nuclear option for suppressing Prisma warnings
 // We patch process.stdout and process.stderr because console.warn might be bypassed
@@ -42,6 +43,9 @@ console.warn = (...args) => {
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@rcryptocurrency/ui', '@rcryptocurrency/database'],
+  experimental: {
+    outputFileTracingRoot: path.join(__dirname, '../../'),
+  },
   webpack: (config, { isServer }) => {
     return config;
   },
