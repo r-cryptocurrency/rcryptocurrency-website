@@ -231,11 +231,12 @@ First, create a compressed dump of your local database. Run this on your **local
 
 ```bash
 # 1. Find your database container name
-docker ps
+# (Note: You may need to use 'sudo' if your user is not in the docker group)
+sudo docker ps
 # (Look for the postgres container, e.g., rcryptocurrency-site-db-1)
 
 # 2. Create the dump file
-docker exec -t rcryptocurrency-site-db-1 pg_dump -U rcc_user -d rcc_db -F c > rcc_db_backup.dump
+sudo docker exec -t rcryptocurrency-site-db-1 pg_dump -U rcc_user -d rcc_db -F c > rcc_db_backup.dump
 ```
 
 ### 2. Transfer
@@ -268,12 +269,12 @@ If you followed the **Docker Deployment** guide, your database is running inside
 
 1.  **Copy the dump into the container**:
     ```bash
-    docker cp rcc_db_backup.dump rcryptocurrency-site-postgres-1:/tmp/backup.dump
+    sudo docker cp rcc_db_backup.dump rcryptocurrency-site-postgres-1:/tmp/backup.dump
     ```
 
 2.  **Restore inside the container**:
     ```bash
-    docker exec -i rcryptocurrency-site-postgres-1 pg_restore -U rcc_user -d rcc_db -F c --clean --if-exists /tmp/backup.dump
+    sudo docker exec -i rcryptocurrency-site-postgres-1 pg_restore -U rcc_user -d rcc_db -F c --clean --if-exists /tmp/backup.dump
     ```
 
 ---
