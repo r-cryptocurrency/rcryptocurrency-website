@@ -130,31 +130,7 @@ sudo docker compose up -d
 pnpm --filter @rcryptocurrency/database db:push
 ```
 
-## 📦 Database Migration & Backup
 
-To migrate your PostgreSQL database to another machine or create a backup, you can use standard PostgreSQL tools (`pg_dump` and `pg_restore`). Since we are using Docker, we execute these commands inside the container.
-
-### Backup (Export)
-Run this command to create a compressed dump of your database:
-
-```bash
-# Replace 'rcryptocurrency-site-db-1' with your actual container name if different
-docker exec -t rcryptocurrency-site-db-1 pg_dump -U rcc_user -d rcc_db -F c > rcc_db_backup.dump
-```
-
-### Restore (Import)
-On the new machine (after starting the docker container):
-
-1.  Copy the backup file to the new machine.
-2.  Run the restore command:
-
-```bash
-# Drop existing data (optional, be careful!)
-# docker exec -i rcryptocurrency-site-db-1 psql -U rcc_user -d rcc_db -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-
-# Restore from dump
-cat rcc_db_backup.dump | docker exec -i rcryptocurrency-site-db-1 pg_restore -U rcc_user -d rcc_db -F c --clean --if-exists
-```
 
 ### 4. Seed Data (Optional)
 
@@ -246,20 +222,138 @@ The `apps/ledger` package contains several utility scripts for maintaining the d
 
 ---
 
+## 📦 Database Migration & Backup
+
+Moving your data from your local development environment (Docker) to production (PM2 or Docker) requires exporting and importing the PostgreSQL database.
+
+### 1. Export (From Local Docker)
+First, create a compressed dump of your local database. Run this on your **local machine**:
+
+```bash
+# 1. Find your database container name
+docker ps
+# (Look for the postgres container, e.g., rcryptocurrency-site-db-1)
+
+# 2. Create the dump file
+docker exec -t rcryptocurrency-site-db-1 pg_dump -U rcc_user -d rcc_db -F c > rcc_db_backup.dump
+```
+
+### 2. Transfer
+Upload the `rcc_db_backup.dump` file to your VPS.
+```bash
+scp rcc_db_backup.dump user@your-vps-ip:~/
+```
+
+### 3. Import (Restore)
+
+#### Option A: Importing to PM2 (Native Postgres)
+If you followed the **PM2 Deployment** guide, your database is running natively on the VPS.
+
+1.  **Reset the Database** (Optional but recommended for a clean slate):
+    ```bash
+    # Drop and recreate the schema to ensure no conflicts
+    sudo -u postgres psql -d rcc_db -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+    ```
+
+2.  **Restore the Data**:
+    ```bash
+    # Restore using pg_restore
+    # You might need to specify the host as localhost if peer authentication fails
+    pg_restore -U rcc_user -d rcc_db -h localhost -F c --clean --if-exists rcc_db_backup.dump
+    ```
+    *Note: You will be prompted for the `rcc_user` password you set during setup.*
+
+#### Option B: Importing to Docker (Containerized Postgres)
+If you followed the **Docker Deployment** guide, your database is running inside a container.
+
+1.  **Copy the dump into the container**:
+    ```bash
+    docker cp rcc_db_backup.dump rcryptocurrency-site-postgres-1:/tmp/backup.dump
+    ```
+
+2.  **Restore inside the container**:
+    ```bash
+    docker exec -i rcryptocurrency-site-postgres-1 pg_restore -U rcc_user -d rcc_db -F c --clean --if-exists /tmp/backup.dump
+    ```
+
+---
+
 ## 🚢 Deployment Guide (Production)
 
 This guide details how to deploy the stack to a VPS (App Server) while using a separate machine for SSL termination/Reverse Proxy (e.g., Nginx Proxy Manager).
 
-### 1. Database Verification
-Ensure `packages/database/prisma/schema.prisma` is configured for PostgreSQL (default):
-```prisma
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
+### 🖥️ Resource Requirements (VPS)
+For low to moderate traffic, the following specifications are recommended for the App Server:
+*   **CPU**: 2 vCPU
+*   **RAM**: 4GB Recommended (2GB Minimum + 2GB Swap File is required to prevent build crashes).
+*   **Storage**: 25GB+ SSD.
+*   **OS**: Ubuntu 22.04 LTS or similar.
+
+---
+
+### Option 1: PM2 (Recommended)
+This method is lighter on resources and easier to debug for single-server deployments.
+
+#### 1. Prerequisites
+Install Node.js 18+, PostgreSQL, and PM2 on the App Server.
+```bash
+# Install Node.js 18
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Install PM2
+sudo npm install -g pm2 pnpm
+
+# Install PostgreSQL
+sudo apt-get install -y postgresql postgresql-contrib
 ```
 
-### 2. Docker Configuration
+#### 2. Database Setup
+Configure a local PostgreSQL user and database.
+```bash
+sudo -u postgres psql
+# Inside psql shell:
+CREATE DATABASE rcc_db;
+CREATE USER rcc_user WITH ENCRYPTED PASSWORD 'your_secure_password';
+GRANT ALL PRIVILEGES ON DATABASE rcc_db TO rcc_user;
+\q
+```
+
+#### 3. Application Setup
+Clone the repo and build the application.
+```bash
+git clone https://github.com/r-cryptocurrency/rcryptocurrency-website.git
+cd rcryptocurrency-website
+
+# Install dependencies
+pnpm install
+
+# Configure Environment
+cp .env.example .env
+# Edit .env to set DATABASE_URL="postgresql://rcc_user:your_secure_password@localhost:5432/rcc_db"
+
+# Push Database Schema
+pnpm db:push
+
+# Build Applications
+pnpm build
+```
+
+#### 4. Start Services
+Use the included `ecosystem.config.js` to start all services (Web, Ledger, Oracle, Scraper, Monitor).
+```bash
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup
+```
+*Note: The `web` application is configured to run in **Cluster Mode** (`instances: "max"`), which will spawn a worker for every CPU core available. The other services (`ledger`, `scraper`, etc.) run as single instances to prevent data duplication.*
+
+---
+
+### Option 2: Docker (Alternative)
+Use this method if you prefer container isolation or are deploying to a cluster.
+
+#### 1. Docker Configuration
 Since this is a Turborepo, we need to create Dockerfiles that prune the workspace to only include necessary dependencies for each app.
 
 **Create `apps/web/Dockerfile`:**
@@ -313,7 +407,7 @@ CMD ["node", "apps/web/server.js"]
 ```
 *(Note: You will need similar Dockerfiles for `ledger`, `oracle`, and `scraper`, adjusting the scope and CMD).*
 
-### 3. Orchestration (docker-compose.prod.yml)
+#### 2. Orchestration (docker-compose.prod.yml)
 Create a `docker-compose.prod.yml` on your App Server:
 
 ```yaml
@@ -356,12 +450,14 @@ volumes:
   postgres_data:
 ```
 
-### 4. Reverse Proxy Setup (Multi-Machine)
+---
 
-If you are running **Nginx Proxy Manager (NPM)** on a separate machine (Proxy Server) to handle SSL for `rcryptocurrency.com`:
+### Reverse Proxy Setup (Multi-Machine)
+
+Regardless of whether you use PM2 or Docker, if you are running **Nginx Proxy Manager (NPM)** on a separate machine (Proxy Server) to handle SSL for `rcryptocurrency.com`:
 
 1.  **App Server (Machine A)**:
-    *   Ensure the `web` container is running and mapped to port `3000` (as shown above).
+    *   Ensure the `web` application is running on port `3000`.
     *   **Firewall**: Allow incoming traffic on port `3000` *only* from the IP address of the Proxy Server.
         ```bash
         # Example UFW command
@@ -377,16 +473,3 @@ If you are running **Nginx Proxy Manager (NPM)** on a separate machine (Proxy Se
     *   **Forward Port**: `3000`
     *   **Websockets Support**: Enable this (Required for Next.js).
     *   **SSL**: Request a new Let's Encrypt certificate and enable "Force SSL".
-
-### 5. Deployment Commands
-
-```bash
-# 1. Set environment variables
-export DB_PASSWORD=your_secure_password
-
-# 2. Build and Run
-docker compose -f docker-compose.prod.yml up -d --build
-
-# 3. Initialize Database (Run inside the web or ledger container)
-docker compose -f docker-compose.prod.yml exec web pnpm db:push
-```

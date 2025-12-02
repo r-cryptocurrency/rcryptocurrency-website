@@ -83,7 +83,9 @@ export default async function BurnsPage({ searchParams }: { searchParams: { page
               <TableBody>
                 {burns.map((burn) => {
                   const senderInfo = holderMap.get(burn.sender.toLowerCase());
-                  const label = senderInfo?.username ? `u/${senderInfo.username}` : senderInfo?.label || '-';
+                  const label = senderInfo?.username 
+                    ? (senderInfo.username.startsWith('u/') ? senderInfo.username : `u/${senderInfo.username}`) 
+                    : senderInfo?.label || '-';
                   
                   return (
                   <TableRow key={burn.id}>

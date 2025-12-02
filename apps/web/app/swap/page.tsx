@@ -126,7 +126,9 @@ export default async function SwapPage({ searchParams }: { searchParams: { page?
                 <TableBody>
                   {swaps.map((swap) => {
                     const makerInfo = holderMap.get(swap.maker.toLowerCase());
-                    const label = makerInfo?.username ? `u/${makerInfo.username}` : makerInfo?.label || '-';
+                    const label = makerInfo?.username 
+                      ? (makerInfo.username.startsWith('u/') ? makerInfo.username : `u/${makerInfo.username}`) 
+                      : makerInfo?.label || '-';
                     
                     return (
                     <TableRow key={swap.id}>
