@@ -8,28 +8,39 @@ import Timeline from '../components/Timeline';
 export const dynamic = 'force-dynamic';
 
 async function getStats() {
-  const holderCount = await prisma.holder.count();
-  const userCount = await prisma.redditUser.count();
-  const submissionCount = await prisma.submission.count();
-  
-    // Calculate total MOONs tracked (sum of totalBalance)
-  const totalMoons = await prisma.holder.aggregate({
-    _sum: {
-      totalBalance: true
-    }
-  });
+  try {
+    const holderCount = await prisma.holder.count();
+    const userCount = await prisma.redditUser.count();
+    const submissionCount = await prisma.submission.count();
+    
+      // Calculate total MOONs tracked (sum of totalBalance)
+    const totalMoons = await prisma.holder.aggregate({
+      _sum: {
+        totalBalance: true
+      }
+    });
 
-  const marketData = await prisma.marketStat.findFirst({
-    orderBy: { timestamp: 'desc' }
-  });
+    const marketData = await prisma.marketStat.findFirst({
+      orderBy: { timestamp: 'desc' }
+    });
 
-  return {
-    holderCount,
-    userCount,
-    submissionCount,
-    totalMoons: totalMoons._sum.totalBalance || 0,
-    marketData
-  };
+    return {
+      holderCount,
+      userCount,
+      submissionCount,
+      totalMoons: totalMoons?._sum?.totalBalance || 0,
+      marketData
+    };
+  } catch (error) {
+    console.error('Failed to fetch stats:', error);
+    return {
+      holderCount: 0,
+      userCount: 0,
+      submissionCount: 0,
+      totalMoons: 0,
+      marketData: null
+    };
+  }
 }
 
 export default async function Home() {
