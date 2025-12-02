@@ -9,6 +9,7 @@ module.exports = {
       exec_mode: "cluster", // Enable cluster mode for load balancing
       autorestart: true,
       watch: false,
+      env_file: ".env",
       env: {
         NODE_ENV: "production",
       },
@@ -20,6 +21,7 @@ module.exports = {
       instances: 1,
       autorestart: true,
       watch: false,
+      env_file: ".env",
       env: {
         NODE_ENV: "production",
       },
@@ -32,6 +34,7 @@ module.exports = {
       instances: 1,
       autorestart: true,
       watch: false,
+      env_file: ".env",
       env: {
         NODE_ENV: "production",
       },
@@ -43,6 +46,7 @@ module.exports = {
       instances: 1,
       autorestart: true,
       watch: false,
+      env_file: ".env",
       env: {
         NODE_ENV: "production",
       },
@@ -54,6 +58,7 @@ module.exports = {
       instances: 1,
       autorestart: true,
       watch: false,
+      env_file: ".env",
       env: {
         NODE_ENV: "production",
       },
