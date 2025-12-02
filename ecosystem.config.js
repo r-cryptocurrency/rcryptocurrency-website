@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: "web",
-      script: "node_modules/next/dist/bin/next",
+      script: "apps/web/node_modules/next/dist/bin/next",
       args: "start apps/web -p 3000",
       cwd: ".",
       instances: "max", // Scale web server to all available cores
@@ -27,7 +27,7 @@ module.exports = {
     {
       name: "monitor",
       script: "apps/ledger/scripts/monitor-moons.ts",
-      interpreter: "node_modules/.bin/ts-node",
+      interpreter: "apps/ledger/node_modules/.bin/ts-node",
       cwd: ".",
       instances: 1,
       autorestart: true,

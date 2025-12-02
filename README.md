@@ -259,10 +259,14 @@ If you followed the **PM2 Deployment** guide, your database is running natively 
 2.  **Restore the Data**:
     ```bash
     # Restore using pg_restore
-    # You might need to specify the host as localhost if peer authentication fails
-    pg_restore -U rcc_user -d rcc_db -h localhost -F c --clean --if-exists rcc_db_backup.dump
+    # We use 'sudo -u postgres' to run as superuser, avoiding permission/password issues.
+    # 1. Move backup to /tmp so the postgres user can read it
+    cp rcc_db_backup.dump /tmp/rcc_db_backup.dump
+    
+    # 2. Run restore
+    sudo -u postgres pg_restore -d rcc_db --clean --if-exists /tmp/rcc_db_backup.dump
     ```
-    *Note: You will be prompted for the `rcc_user` password you set during setup.*
+    *Note: This assumes you have already created the `rcc_db` database and `rcc_user` role. If you haven't, please see [Database Setup](#2-database-setup) in the Deployment Guide below.*
 
 #### Option B: Importing to Docker (Containerized Postgres)
 If you followed the **Docker Deployment** guide, your database is running inside a container.
@@ -332,6 +336,9 @@ pnpm install
 # Configure Environment
 cp .env.example .env
 # Edit .env to set DATABASE_URL="postgresql://rcc_user:your_secure_password@localhost:5432/rcc_db"
+
+# Ensure database package can see the environment
+cp .env packages/database/.env
 
 # Push Database Schema
 pnpm db:push
