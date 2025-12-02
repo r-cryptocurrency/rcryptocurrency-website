@@ -15,7 +15,7 @@ module.exports = {
     },
     {
       name: "ledger",
-      script: "apps/ledger/dist/index.js",
+      script: "apps/ledger/dist/src/index.js",
       cwd: ".",
       instances: 1,
       autorestart: true,
