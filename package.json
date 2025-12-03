@@ -11,8 +11,9 @@
     "monitor": "pnpm --filter ledger monitor-moons"
   },
   "devDependencies": {
-    "turbo": "^1.10.0",
     "prettier": "^3.0.0",
+    "tsconfig-paths": "^4.2.0",
+    "turbo": "^1.10.0",
     "typescript": "^5.1.0"
   },
   "packageManager": "pnpm@8.6.0",

@@ -1,2 +1,2 @@
-import { main } from '../src/monitor';
+import { main } from '../src/monitor/index';
 main().catch(console.error);

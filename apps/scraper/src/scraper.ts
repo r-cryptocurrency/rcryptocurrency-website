@@ -92,7 +92,7 @@ export async function runScraper(sortType: 'new' | 'hot' | 'top' = 'new') {
           }
         }));
       } catch (err: any) {
-        console.error(`Failed to upsert post ${post.id}:`, err.message);
+        console.error(`Failed to upsert post ${post.id}:`, err);
         continue; // Skip to next post if this one fails
       }
 
@@ -137,7 +137,7 @@ export async function runScraper(sortType: 'new' | 'hot' | 'top' = 'new') {
           await delay(100); // Small delay to ease DB load
         }
       } catch (err: any) {
-        console.error(`Error fetching comments for ${post.id}:`, err.message);
+        console.error(`Error fetching comments for ${post.id}:`, err);
       }
     }
     console.log(`Scraping complete. Processed ${posts.length} posts.`);

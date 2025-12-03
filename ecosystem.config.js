@@ -30,6 +30,7 @@ module.exports = {
       name: "monitor",
       script: "apps/ledger/scripts/monitor-moons.ts",
       interpreter: "apps/ledger/node_modules/.bin/ts-node",
+      interpreter_args: "-r tsconfig-paths/register",
       cwd: ".",
       instances: 1,
       autorestart: true,

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "mkdir -p prisma && cp ../../packages/database/prisma/schema.prisma ./prisma/schema.prisma && next dev",
     "build": "mkdir -p prisma && cp ../../packages/database/prisma/schema.prisma ./prisma/schema.prisma && next build",
-    "start": "next start",
+    "start": "mkdir -p prisma && cp ../../packages/database/prisma/schema.prisma ./prisma/schema.prisma && next start",
     "lint": "next lint"
   },
   "dependencies": {
