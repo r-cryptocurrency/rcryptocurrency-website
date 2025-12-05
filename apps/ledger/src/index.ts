@@ -6,7 +6,13 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 
 // Load .env from project root
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+// In dev (ts-node): __dirname is src. Root is ../../../
+// In prod (dist): __dirname is dist/src. Root is ../../../../
+const envPath = process.env.NODE_ENV === 'production'
+  ? path.resolve(__dirname, '../../../../.env')
+  : path.resolve(__dirname, '../../../.env');
+
+dotenv.config({ path: envPath });
 
 // Define Arbitrum Nova manually
 const arbitrumNova = {

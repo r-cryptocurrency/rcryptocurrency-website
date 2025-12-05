@@ -4,7 +4,13 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 
 // Load .env from project root
-dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
+// In dev (ts-node): __dirname is src/monitor. Root is ../../../../
+// In prod (dist): __dirname is dist/src/monitor. Root is ../../../../../
+const envPath = process.env.NODE_ENV === 'production' 
+  ? path.resolve(__dirname, '../../../../../.env')
+  : path.resolve(__dirname, '../../../../.env');
+
+dotenv.config({ path: envPath });
 
 export const BURN_ADDRESS = '0x000000000000000000000000000000000000dead';
 export const TELEGRAM_API = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`;
