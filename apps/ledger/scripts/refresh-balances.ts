@@ -310,6 +310,11 @@ async function updateEarnedMoons(targetAddress?: string) {
     select: { address: true, username: true }
   });
 
+  if (holders.length === 0) {
+    console.log("No linked Reddit User found for this address. Skipping user update.");
+    return;
+  }
+
   const userEarned = new Map<string, number>(); // Username -> Total
 
   for (const holder of holders) {
@@ -478,15 +483,26 @@ async function main() {
           console.warn(`Failed to get activity for ${holder.address}`, err);
         }
 
-        await prisma.holder.update({
+        await prisma.holder.upsert({
           where: { address: holder.address },
-          data: {
+          update: {
             balanceNova: novaBal,
             balanceOne: oneBal,
             balanceEth: ethBal,
             totalBalance: total,
             lastTransferAt: activity.lastTransferAt || undefined,
             hasOutgoing: activity.hasOutgoing ? true : undefined
+          },
+          create: {
+            address: holder.address,
+            balanceNova: novaBal,
+            balanceOne: oneBal,
+            balanceEth: ethBal,
+            totalBalance: total,
+            lastTransferAt: activity.lastTransferAt || undefined,
+            hasOutgoing: activity.hasOutgoing ? true : false,
+            username: holder.username,
+            label: holder.label
           }
         });
       }
