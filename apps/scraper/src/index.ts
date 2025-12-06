@@ -5,7 +5,13 @@ import { prisma } from '@rcryptocurrency/database';
 console.log('Starting Scraper Service...');
 
 // Debug Prisma models
-console.log('Available Prisma Models:', Object.keys(prisma).filter(k => !k.startsWith('_')));
+if (prisma) {
+  // @ts-ignore
+  const models = Object.keys(prisma).filter(k => !k.startsWith('_'));
+  console.log('Available Prisma Models:', models);
+} else {
+  console.error('Prisma client is undefined!');
+}
 
 // 1. Top of the hour: NEW
 new CronJob('0 * * * *', async () => {
