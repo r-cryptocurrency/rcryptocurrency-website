@@ -145,7 +145,7 @@ export default async function Home() {
             <a href="https://t.me/rCryptoCurrencyOfficial" target="_blank" className="text-slate-400 hover:text-rcc-orange text-2xl transition-colors">
               <i className="fa-brands fa-telegram"></i>
             </a>
-            <a href="https://discord.gg/cryptocurrency" target="_blank" className="text-slate-400 hover:text-rcc-orange text-2xl transition-colors">
+                        <a href="https://discord.gg/ZuU9Gqeqmy" target="_blank" className="text-slate-400 hover:text-rcc-orange text-2xl transition-colors">
               <i className="fa-brands fa-discord"></i>
             </a>
           </div>

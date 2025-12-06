@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import ThemeToggle from './ThemeToggle';
@@ -8,12 +8,21 @@ import ThemeToggle from './ThemeToggle';
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
 
+  // Prevent scrolling when menu is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+  }, [isOpen]);
+
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-rcc-orange/95 dark:bg-rcc-dark-orange/95 backdrop-blur-sm border-b border-white/10 shadow-lg transition-colors duration-300">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 text-decoration-none">
+          <Link href="/" className="flex items-center gap-2 text-decoration-none z-50 relative">
             <Image 
               src="/img/logorcc.png" 
               alt="r/CC Logo" 
@@ -28,54 +37,56 @@ export default function Navbar() {
 
           {/* Menu Button (Always Visible) */}
           <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <div className="relative">
+            <div className="z-50 relative">
+               <ThemeToggle />
+            </div>
+            <div className="relative z-50">
               <button 
-                className="text-white focus:outline-none"
+                className="text-white focus:outline-none p-2"
                 onClick={() => setIsOpen(!isOpen)}
               >
-                <i className={`fas ${isOpen ? 'fa-times' : 'fa-bars'} text-2xl`}></i>
+                <i className={`fas ${isOpen ? 'fa-times' : 'fa-bars'} text-2xl transition-all duration-300 ${isOpen ? 'rotate-90' : ''}`}></i>
               </button>
-
-              {/* Dropdown Menu */}
-              {isOpen && (
-                <div className="absolute top-full right-0 mt-4 w-48 bg-rcc-orange dark:bg-rcc-dark-orange rounded-xl shadow-xl border border-white/10 flex flex-col gap-2 p-2 animate-in fade-in slide-in-from-top-2 z-50">
-                  <NavLink href="/" label="Home" mobile onClick={() => setIsOpen(false)} />
-                  <NavLink href="/#timeline" label="Timeline" mobile onClick={() => setIsOpen(false)} />
-                  <NavLink href="/stats" label="Stats" mobile onClick={() => setIsOpen(false)} />
-                  <NavLink href="/richlist" label="Richlist" mobile onClick={() => setIsOpen(false)} />
-                  <NavLink href="/burns" label="Burns" mobile onClick={() => setIsOpen(false)} />
-                  <NavLink href="/calendar" label="Calendar" mobile onClick={() => setIsOpen(false)} />
-                  <NavLink href="/swap" label="Swap" mobile onClick={() => setIsOpen(false)} />
-                  <NavLink href="/advertise" label="Advertise" mobile onClick={() => setIsOpen(false)} />
-                  <a 
-                    href="https://www.reddit.com/r/CryptoCurrency/" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 rounded-lg hover:bg-white/20 text-white font-semibold transition-colors text-sm text-center"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    Subreddit
-                  </a>
-                </div>
-              )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Full Screen Menu Overlay */}
+      <div className={`fixed inset-0 bg-rcc-orange dark:bg-rcc-dark-orange z-40 transition-all duration-500 ease-in-out transform ${isOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
+        <div className="flex flex-col items-center justify-center h-full space-y-6 p-8">
+          <NavLink href="/" label="Home" emoji="🏠" onClick={() => setIsOpen(false)} />
+          <NavLink href="/#timeline" label="Timeline" emoji="⏳" onClick={() => setIsOpen(false)} />
+          <NavLink href="/stats" label="Stats" emoji="📊" onClick={() => setIsOpen(false)} />
+          <NavLink href="/richlist" label="Richlist" emoji="💰" onClick={() => setIsOpen(false)} />
+          <NavLink href="/burns" label="Burns" emoji="🔥" onClick={() => setIsOpen(false)} />
+          <NavLink href="/calendar" label="Calendar" emoji="📅" onClick={() => setIsOpen(false)} />
+          <NavLink href="/swap" label="Swap" emoji="🔄" onClick={() => setIsOpen(false)} />
+          <NavLink href="/advertise" label="Advertise" emoji="📢" onClick={() => setIsOpen(false)} />
+          <a 
+            href="https://www.reddit.com/r/CryptoCurrency/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 text-2xl font-bold text-white hover:text-white/80 transition-colors"
+            onClick={() => setIsOpen(false)}
+          >
+            <span>👽</span> Subreddit
+          </a>
         </div>
       </div>
     </nav>
   );
 }
 
-function NavLink({ href, label, mobile = false, onClick }: { href: string, label: string, mobile?: boolean, onClick?: () => void }) {
+function NavLink({ href, label, emoji, onClick }: { href: string, label: string, emoji: string, onClick?: () => void }) {
   return (
     <Link 
       href={href} 
-      className={`px-4 py-2 rounded-lg hover:bg-white/20 text-white font-semibold transition-colors text-sm text-center ${mobile ? 'w-full' : ''}`}
+      className="flex items-center gap-3 text-2xl font-bold text-white hover:text-white/80 transition-colors transform hover:scale-105 duration-200"
       onClick={onClick}
     >
+      <span>{emoji}</span>
       {label}
     </Link>
   );
-
 }

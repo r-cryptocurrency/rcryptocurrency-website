@@ -1,5 +1,5 @@
 import { prisma } from '@rcryptocurrency/database';
-import { Card, Title, Text, BarList, Flex, Grid, Metric } from "@tremor/react";
+import { Card, Title, Text, BarList, Flex, Grid, Metric, Table, TableHead, TableRow, TableHeaderCell, TableBody, TableCell, BadgeDelta } from "@tremor/react";
 import Background from '../../components/Background';
 import SentimentChart from '../stats/SentimentChart';
 import SentimentInfo from './SentimentInfo';
@@ -20,6 +20,43 @@ export default async function ScraperPage({ searchParams }: { searchParams: { ra
     // Default 24h
     startDate.setHours(startDate.getHours() - 24);
   }
+
+  // --- Round 50 Logic ---
+  const roundEnd = new Date('2025-12-08T23:59:59Z');
+  const roundStart = new Date('2025-11-10T00:00:00Z'); // 28 days prior
+
+  // 1. Get Post Scores
+  const postScores = await prisma.redditPost.groupBy({
+    by: ['author'],
+    _sum: { score: true },
+    where: { createdUtc: { gte: roundStart, lte: roundEnd } }
+  });
+
+  // 2. Get Comment Scores
+  const commentScores = await prisma.redditComment.groupBy({
+    by: ['author'],
+    _sum: { score: true },
+    where: { createdUtc: { gte: roundStart, lte: roundEnd } }
+  });
+
+  // 3. Merge Scores
+  const karmaMap = new Map<string, number>();
+
+  postScores.forEach(p => {
+    const current = karmaMap.get(p.author) || 0;
+    karmaMap.set(p.author, current + (p._sum.score || 0));
+  });
+
+  commentScores.forEach(c => {
+    const current = karmaMap.get(c.author) || 0;
+    karmaMap.set(c.author, current + (c._sum.score || 0));
+  });
+
+  // 4. Sort and Top 20
+  const leaderboard = Array.from(karmaMap.entries())
+    .map(([author, score]) => ({ author, score }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 20);
 
   const posts = await prisma.redditPost.findMany({
     orderBy: { createdUtc: 'desc' },
@@ -101,6 +138,45 @@ export default async function ScraperPage({ searchParams }: { searchParams: { ra
               </div>
             </div>
 
+          </div>
+
+          {/* Karma Leaderboard */}
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Karma Leaderboard (Round 50)</h2>
+          <div className="bg-white/80 dark:bg-black/20 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden border border-orange-100 dark:border-white/10 mb-12">
+            <div className="bg-orange-100/50 dark:bg-white/5 px-6 py-4 border-b border-orange-100 dark:border-white/10 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white m-0">Top Earners (Nov 10 - Dec 8)</h3>
+              <span className="text-xs text-slate-500 dark:text-slate-400">Based on scraped posts/comments</span>
+            </div>
+            <div className="p-6">
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableHeaderCell>Rank</TableHeaderCell>
+                    <TableHeaderCell>User</TableHeaderCell>
+                    <TableHeaderCell className="text-right">Est. Karma</TableHeaderCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {leaderboard.map((user, index) => (
+                    <TableRow key={user.author}>
+                      <TableCell>
+                        <BadgeDelta deltaType={index < 3 ? "increase" : "unchanged"} isIncreasePositive={true} size="xs">
+                          #{index + 1}
+                        </BadgeDelta>
+                      </TableCell>
+                      <TableCell>
+                        <a href={`https://reddit.com/u/${user.author}`} target="_blank" rel="noreferrer" className="text-slate-700 dark:text-slate-300 hover:text-rcc-orange font-medium">
+                          u/{user.author}
+                        </a>
+                      </TableCell>
+                      <TableCell className="text-right font-mono font-bold text-slate-800 dark:text-white">
+                        {user.score.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
 
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Latest Posts</h2>
