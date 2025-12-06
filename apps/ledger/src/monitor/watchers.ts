@@ -114,6 +114,9 @@ export function setupSwapWatcher(
           } catch (e) {
              console.warn(`   -> Failed to fetch tx ${log.transactionHash} for sender resolution`);
           }
+          
+          // Normalize maker address
+          maker = maker.toLowerCase();
 
           // Identify MOON
           const isMoon0 = sym0 === 'MOON';

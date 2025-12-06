@@ -104,16 +104,25 @@ async function processTransferLog(log: any, chainKey: ChainKey) {
   
   if (!from || !to) return;
 
+  const fromLower = from.toLowerCase();
+  const toLower = to.toLowerCase();
+
+  // Update Last Active Timestamp immediately
+  const now = new Date();
+  
   // We optimize by marking these addresses as "dirty" and scheduling a full 
   // balance fetch, rather than doing math on the DB value. 
   // This is "Eventual Consistency" which is safer against reorgs.
-  await updateBalanceFromRPC(from, chainKey);
-  await updateBalanceFromRPC(to, chainKey);
+  await updateBalanceFromRPC(fromLower, chainKey, now);
+  await updateBalanceFromRPC(toLower, chainKey, now);
 }
 
-async function updateBalanceFromRPC(address: string, chainKey: ChainKey) {
+async function updateBalanceFromRPC(address: string, chainKey: ChainKey, lastActive?: Date) {
   let client;
   let contract;
+  
+  // Ensure address is lowercase for DB consistency
+  address = address.toLowerCase();
 
   if (chainKey === 'balanceNova') {
     client = novaClient;
@@ -137,13 +146,14 @@ async function updateBalanceFromRPC(address: string, chainKey: ChainKey) {
     const floatBalance = Number(balance) / 1e18;
 
     // Upsert into DB
-    const updateData = { 
+    const updateData: any = { 
       [chainKey]: floatBalance,
       lastUpdated: new Date(),
-      // If this is a transfer we are processing, we could update lastTransferAt,
-      // but this function is just a balance fetcher. 
-      // Ideally, processTransferLog should pass a timestamp.
     };
+
+    if (lastActive) {
+      updateData.lastTransferAt = lastActive;
+    }
     
     await prisma.holder.upsert({
       where: { address: address },
@@ -151,7 +161,8 @@ async function updateBalanceFromRPC(address: string, chainKey: ChainKey) {
       create: { 
         address: address, 
         [chainKey]: floatBalance,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
+        lastTransferAt: lastActive
       }
     });
 
