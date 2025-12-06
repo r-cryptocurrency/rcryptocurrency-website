@@ -383,8 +383,6 @@ async function main() {
   }
 
   const labeledCount = holders.filter(h => h.label).length;
-
-  const labeledCount = holders.filter(h => h.label).length;
   if (labeledCount === 0 && holders.length > 0) {
       // Only warn if we actually fetched something but found no labels
       // (It's possible all labeled ones were already processed)

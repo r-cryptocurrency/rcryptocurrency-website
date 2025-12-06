@@ -1,12 +1,62 @@
 import { prisma, Burn } from '@rcryptocurrency/database';
-import { Title, Text, Table, TableHead, TableHeaderCell, TableBody, TableRow, TableCell, Badge, Flex, Button } from "@tremor/react";
+import { Title, Text, Table, TableHead, TableHeaderCell, TableBody, TableRow, TableCell, Badge, Flex, Button, Metric } from "@tremor/react";
 import Background from '../../components/Background';
 import BurnsFilters from './BurnsFilters';
+import BurnChart from './BurnChart';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
 const PAGE_SIZE = 20;
+
+async function getBurnStats() {
+  // Fetch all burns to calculate cumulative stats
+  // In a real production app with millions of rows, this should be pre-aggregated
+  const allBurns = await prisma.burn.findMany({
+    orderBy: { timestamp: 'asc' },
+    select: { timestamp: true, amount: true, chain: true }
+  });
+
+  let totalBurned = 0;
+  let novaBurned = 0;
+  let oneBurned = 0;
+
+  // Group by day for the chart
+  const chartDataMap = new Map<string, { date: string, Nova: number, One: number, Total: number }>();
+
+  allBurns.forEach(burn => {
+    totalBurned += burn.amount;
+    if (burn.chain.includes('Nova')) novaBurned += burn.amount;
+    if (burn.chain.includes('One')) oneBurned += burn.amount;
+
+    const dateKey = new Date(burn.timestamp).toISOString().split('T')[0];
+    const existing = chartDataMap.get(dateKey) || { date: dateKey, Nova: 0, One: 0, Total: 0 };
+    
+    if (burn.chain.includes('Nova')) existing.Nova += burn.amount;
+    if (burn.chain.includes('One')) existing.One += burn.amount;
+    
+    chartDataMap.set(dateKey, existing);
+  });
+
+  // Convert daily amounts to cumulative
+  const sortedDates = Array.from(chartDataMap.keys()).sort();
+  let runningNova = 0;
+  let runningOne = 0;
+  
+  const chartData = sortedDates.map(date => {
+    const day = chartDataMap.get(date)!;
+    runningNova += day.Nova;
+    runningOne += day.One;
+    return {
+      date,
+      Nova: runningNova,
+      One: runningOne,
+      Total: runningNova + runningOne
+    };
+  });
+
+  return { totalBurned, novaBurned, oneBurned, chartData };
+}
 
 async function getBurns(page: number, minAmount: number, chain: string | undefined) {
   try {
@@ -50,7 +100,11 @@ export default async function BurnsPage({ searchParams }: { searchParams: { page
   const minAmount = parseFloat(searchParams.minAmount || '0');
   const chain = searchParams.chain;
 
-  const { data: burns, total, holderMap } = await getBurns(page, minAmount, chain);
+  const [{ data: burns, total, holderMap }, { totalBurned, chartData }] = await Promise.all([
+    getBurns(page, minAmount, chain),
+    getBurnStats()
+  ]);
+  
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
@@ -61,6 +115,16 @@ export default async function BurnsPage({ searchParams }: { searchParams: { page
           <Text className="text-slate-600 dark:text-white/80 mb-8">
             Real-time tracking of MOON tokens being burned.
           </Text>
+
+          <div className="mb-8 w-full">
+            <BurnChart data={chartData} />
+            <div className="mt-4 text-center">
+              <Text className="text-slate-500 dark:text-slate-400 uppercase tracking-wider text-sm font-semibold">Total MOONs Burned</Text>
+              <Metric className="text-4xl md:text-5xl font-bold text-orange-500 mt-2">
+                {totalBurned.toLocaleString(undefined, { maximumFractionDigits: 0 })} 🔥
+              </Metric>
+            </div>
+          </div>
 
           <BurnsFilters />
 

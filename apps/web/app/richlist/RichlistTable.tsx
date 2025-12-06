@@ -123,7 +123,12 @@ export default function RichlistTable({ holders, skip, currentSort, currentOrder
                 <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-right font-mono text-xs">
                   {holder.lastTransferAt ? new Date(holder.lastTransferAt).toLocaleDateString() : <span className="opacity-30">-</span>}
                   {holder.hasOutgoing && (
-                    <span className="ml-2 text-xs text-red-500 cursor-help" title="Has outgoing transfers (Active Sender)">↗</span>
+                    <div className="inline-block ml-2 relative group">
+                      <span className="text-xs text-red-500 cursor-help">↗</span>
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-slate-800 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                        Has outgoing transfers
+                      </div>
+                    </div>
                   )}
                 </td>
                 <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-right font-mono">
