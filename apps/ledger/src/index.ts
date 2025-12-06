@@ -5,6 +5,13 @@ import { prisma } from '@rcryptocurrency/database';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
+// Debug Prisma
+if (!prisma) {
+  console.error('CRITICAL: Prisma client is undefined in ledger!');
+} else {
+  console.log('Prisma client successfully loaded in ledger.');
+}
+
 // Load .env from project root
 // In dev (ts-node): __dirname is src. Root is ../../../
 // In prod (dist): __dirname is dist/src. Root is ../../../../
