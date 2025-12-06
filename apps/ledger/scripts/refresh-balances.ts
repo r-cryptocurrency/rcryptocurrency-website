@@ -225,7 +225,7 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Pr
   }
 }
 
-async function updateEarnedMoons() {
+async function updateEarnedMoons(targetAddress?: string) {
   console.log('Calculating Earned Moons from Distributor transfers...');
   const earnedMap = new Map<string, number>(); // Address -> Amount
   let totalTransfersFound = 0;
@@ -246,7 +246,10 @@ async function updateEarnedMoons() {
         const logs = await withRetry(() => novaClient.getLogs({
           address: MOON_CONTRACTS.arbitrumNova as `0x${string}`,
           event: TRANSFER_EVENT,
-          args: { from: distributor as `0x${string}` },
+          args: { 
+            from: distributor as `0x${string}`,
+            to: targetAddress ? (targetAddress as `0x${string}`) : undefined
+          },
           fromBlock,
           toBlock
         }), 3, 2000);
@@ -297,8 +300,13 @@ async function updateEarnedMoons() {
   console.log(`Found ${earnedMap.size} addresses with earned Moons.`);
   
   // Now update users
+  const whereClause: any = { username: { not: null } };
+  if (targetAddress) {
+    whereClause.address = targetAddress;
+  }
+
   const holders = await prisma.holder.findMany({
-    where: { username: { not: null } },
+    where: whereClause,
     select: { address: true, username: true }
   });
 
@@ -497,7 +505,8 @@ async function main() {
     console.log("Balances updated. Now calculating Earned Moons (this takes a long time)...");
     await updateEarnedMoons();
   } else {
-    console.log("Skipping Earned Moons calculation for single address refresh.");
+    console.log("Calculating Earned Moons for single address...");
+    await updateEarnedMoons(targetAddress);
   }
 
   console.log("Done!");
