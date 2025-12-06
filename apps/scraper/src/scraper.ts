@@ -8,6 +8,19 @@ const DELAY_MS = 5000;
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Debug helper
+function checkPrisma() {
+  if (!prisma) {
+    console.error('CRITICAL: Prisma client is undefined in scraper.ts!');
+    return false;
+  }
+  if (!prisma.redditPost) {
+    console.error('CRITICAL: prisma.redditPost is undefined! Available models:', Object.keys(prisma).filter(k => !k.startsWith('_')));
+    return false;
+  }
+  return true;
+}
+
 async function fetchWithRetry(url: string, retries = 3, backoff = 5000) {
   for (let i = 0; i < retries; i++) {
     try {
@@ -42,6 +55,10 @@ async function upsertWithRetry(operation: () => Promise<any>, retries = 3) {
 }
 
 export async function runScraper(sortType: 'new' | 'hot' | 'top' = 'new') {
+  if (!checkPrisma()) {
+    throw new Error('Prisma client not ready');
+  }
+
   console.log(`Scraping r/${SUBREDDIT} (${sortType}) via public JSON...`);
   
   try {
