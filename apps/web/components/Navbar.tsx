@@ -53,8 +53,8 @@ export default function Navbar() {
       </div>
 
       {/* Full Screen Menu Overlay */}
-      <div className={`fixed inset-0 bg-slate-50/95 dark:bg-slate-950/95 z-40 transition-all duration-500 ease-in-out transform ${isOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
-        <div className="flex flex-col items-center justify-center h-full space-y-6 p-8">
+      <div className={`fixed inset-0 bg-orange-50/95 dark:bg-slate-950/95 z-40 transition-all duration-500 ease-in-out transform ${isOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
+        <div className="flex flex-col items-center justify-start h-full space-y-6 p-8 pt-28 overflow-y-auto">
           <NavLink href="/" label="Home" emoji="🏠" onClick={() => setIsOpen(false)} />
           <NavLink href="/#timeline" label="Timeline" emoji="⏳" onClick={() => setIsOpen(false)} />
           <NavLink href="/stats" label="Stats" emoji="📊" onClick={() => setIsOpen(false)} />

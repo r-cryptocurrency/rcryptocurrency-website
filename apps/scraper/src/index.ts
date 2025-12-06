@@ -1,7 +1,11 @@
 import { CronJob } from 'cron';
 import { runScraper } from './scraper';
+import { prisma } from '@rcryptocurrency/database';
 
 console.log('Starting Scraper Service...');
+
+// Debug Prisma models
+console.log('Available Prisma Models:', Object.keys(prisma).filter(k => !k.startsWith('_')));
 
 // 1. Top of the hour: NEW
 new CronJob('0 * * * *', async () => {
