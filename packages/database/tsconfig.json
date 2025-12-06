@@ -1,10 +1,14 @@
 {
-  "extends": "@rcryptocurrency/tsconfig/base.json",
+  "extends": "../../packages/tsconfig/base.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
     "declaration": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "lib": ["es2020", "dom"],
+    "target": "es2020",
+    "moduleResolution": "node",
+    "types": ["node"]
   },
   "include": ["src/**/*"]
 }

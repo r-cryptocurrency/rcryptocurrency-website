@@ -14,7 +14,8 @@
   },
   "devDependencies": {
     "prisma": "^4.14.0",
-    "@ccmoons/tsconfig": "workspace:*",
+    "@rcryptocurrency/tsconfig": "workspace:*",
+    "@types/node": "^18.0.0",
     "typescript": "^5.1.0"
   }
 }
