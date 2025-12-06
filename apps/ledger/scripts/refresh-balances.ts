@@ -336,25 +336,53 @@ async function updateEarnedMoons() {
 
 async function main() {
   console.log("--- DEBUG: RUNNING NEW VERSION ---");
-  const totalHolders = await prisma.holder.count();
   
-  // Resume logic: Only fetch addresses that haven't been updated in the last hour
-  // This allows the script to be restarted without reprocessing the same addresses immediately
-  const RESUME_THRESHOLD_MINUTES = 60;
-  const cutoff = new Date(Date.now() - RESUME_THRESHOLD_MINUTES * 60 * 1000);
-  
-  console.log(`Fetching addresses not updated since ${cutoff.toLocaleTimeString()} (${RESUME_THRESHOLD_MINUTES} min ago)...`);
-  
-  const holders = await prisma.holder.findMany({
-    where: {
-      lastUpdated: {
-        lt: cutoff
-      }
-    },
-    select: { address: true, label: true, username: true }
-  });
+  // Parse arguments
+  const args = process.argv.slice(2);
+  const addressArgIndex = args.indexOf('--address');
+  let targetAddress: string | null = null;
 
-  console.log(`Found ${holders.length} stale addresses to refresh (out of ${totalHolders} total).`);
+  if (addressArgIndex !== -1 && args[addressArgIndex + 1]) {
+    targetAddress = args[addressArgIndex + 1].toLowerCase();
+    console.log(`Targeting single address: ${targetAddress}`);
+  }
+
+  let holders;
+
+  if (targetAddress) {
+    // Single Address Mode
+    holders = await prisma.holder.findMany({
+      where: { address: targetAddress },
+      select: { address: true, label: true, username: true }
+    });
+    
+    if (holders.length === 0) {
+      console.log(`Address ${targetAddress} not found in DB. Creating temporary entry for fetch...`);
+      holders = [{ address: targetAddress, label: null, username: null }];
+    }
+  } else {
+    // Batch Mode
+    const totalHolders = await prisma.holder.count();
+    
+    // Resume logic: Only fetch addresses that haven't been updated in the last hour
+    const RESUME_THRESHOLD_MINUTES = 60;
+    const cutoff = new Date(Date.now() - RESUME_THRESHOLD_MINUTES * 60 * 1000);
+    
+    console.log(`Fetching addresses not updated since ${cutoff.toLocaleTimeString()} (${RESUME_THRESHOLD_MINUTES} min ago)...`);
+    
+    holders = await prisma.holder.findMany({
+      where: {
+        lastUpdated: {
+          lt: cutoff
+        }
+      },
+      select: { address: true, label: true, username: true }
+    });
+
+    console.log(`Found ${holders.length} stale addresses to refresh (out of ${totalHolders} total).`);
+  }
+
+  const labeledCount = holders.filter(h => h.label).length;
 
   const labeledCount = holders.filter(h => h.label).length;
   if (labeledCount === 0 && holders.length > 0) {
@@ -467,8 +495,12 @@ async function main() {
     await new Promise(r => setTimeout(r, 500));
   }
 
-  console.log("Balances updated. Now calculating Earned Moons (this takes a long time)...");
-  await updateEarnedMoons();
+  if (!targetAddress) {
+    console.log("Balances updated. Now calculating Earned Moons (this takes a long time)...");
+    await updateEarnedMoons();
+  } else {
+    console.log("Skipping Earned Moons calculation for single address refresh.");
+  }
 
   console.log("Done!");
 }
