@@ -137,14 +137,21 @@ async function updateBalanceFromRPC(address: string, chainKey: ChainKey) {
     const floatBalance = Number(balance) / 1e18;
 
     // Upsert into DB
-    const updateData = { [chainKey]: floatBalance };
+    const updateData = { 
+      [chainKey]: floatBalance,
+      lastUpdated: new Date(),
+      // If this is a transfer we are processing, we could update lastTransferAt,
+      // but this function is just a balance fetcher. 
+      // Ideally, processTransferLog should pass a timestamp.
+    };
     
     await prisma.holder.upsert({
       where: { address: address },
       update: updateData,
       create: { 
         address: address, 
-        [chainKey]: floatBalance 
+        [chainKey]: floatBalance,
+        lastUpdated: new Date()
       }
     });
 

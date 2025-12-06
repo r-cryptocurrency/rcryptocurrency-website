@@ -173,6 +173,14 @@ export function setupSwapWatcher(
                         maker: maker,
                     }
                 });
+
+                // Update maker's last active timestamp
+                await prisma.holder.upsert({
+                    where: { address: maker },
+                    update: { lastTransferAt: new Date() },
+                    create: { address: maker, lastTransferAt: new Date() }
+                });
+
                 console.log('   -> Saved to DB');
              } catch (e) {
                 console.error('   -> Failed to save swap to DB:', e);

@@ -132,7 +132,12 @@ export default async function SwapPage({ searchParams }: { searchParams: { page?
                     
                     return (
                     <TableRow key={swap.id}>
-                    <TableCell className="dark:text-slate-300">{new Date(swap.timestamp).toLocaleTimeString()}</TableCell>
+                    <TableCell className="dark:text-slate-300">
+                      <div className="flex flex-col">
+                        <span>{new Date(swap.timestamp).toLocaleDateString()}</span>
+                        <span className="text-xs text-slate-500">{new Date(swap.timestamp).toLocaleTimeString()}</span>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
                         {swap.dex}
