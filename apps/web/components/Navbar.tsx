@@ -53,7 +53,7 @@ export default function Navbar() {
       </div>
 
       {/* Full Screen Menu Overlay */}
-      <div className={`fixed inset-0 bg-rcc-orange dark:bg-rcc-dark-orange z-40 transition-all duration-500 ease-in-out transform ${isOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
+      <div className={`fixed inset-0 bg-slate-50/95 dark:bg-slate-950/95 z-40 transition-all duration-500 ease-in-out transform ${isOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
         <div className="flex flex-col items-center justify-center h-full space-y-6 p-8">
           <NavLink href="/" label="Home" emoji="🏠" onClick={() => setIsOpen(false)} />
           <NavLink href="/#timeline" label="Timeline" emoji="⏳" onClick={() => setIsOpen(false)} />
@@ -67,7 +67,7 @@ export default function Navbar() {
             href="https://www.reddit.com/r/CryptoCurrency/" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="flex items-center gap-3 text-2xl font-bold text-white hover:text-white/80 transition-colors"
+            className="flex items-center gap-3 text-2xl font-bold text-slate-900 dark:text-white hover:text-rcc-orange transition-colors"
             onClick={() => setIsOpen(false)}
           >
             <span>👽</span> Subreddit
@@ -82,7 +82,7 @@ function NavLink({ href, label, emoji, onClick }: { href: string, label: string,
   return (
     <Link 
       href={href} 
-      className="flex items-center gap-3 text-2xl font-bold text-white hover:text-white/80 transition-colors transform hover:scale-105 duration-200"
+      className="flex items-center gap-3 text-2xl font-bold text-slate-900 dark:text-white hover:text-rcc-orange transition-colors transform hover:scale-105 duration-200"
       onClick={onClick}
     >
       <span>{emoji}</span>

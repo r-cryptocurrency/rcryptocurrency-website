@@ -139,7 +139,7 @@ export default async function Home() {
             <a href="https://www.reddit.com/r/CryptoCurrency/" target="_blank" className="text-slate-400 hover:text-rcc-orange text-2xl transition-colors">
               <i className="fa-brands fa-reddit"></i>
             </a>
-            <a href="https://twitter.com/CCMoons" target="_blank" className="text-slate-400 hover:text-rcc-orange text-2xl transition-colors">
+            <a href="https://twitter.com/CCMOD_" target="_blank" className="text-slate-400 hover:text-rcc-orange text-2xl transition-colors">
               <i className="fa-brands fa-twitter"></i>
             </a>
             <a href="https://t.me/rCryptoCurrencyOfficial" target="_blank" className="text-slate-400 hover:text-rcc-orange text-2xl transition-colors">
