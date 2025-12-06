@@ -51,7 +51,7 @@ export default function Navbar() {
       </nav>
 
       {/* Full Screen Menu Overlay */}
-      <div className={`fixed inset-0 bg-orange-50 dark:bg-slate-950 z-50 transition-all duration-300 ease-in-out transform ${isOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
+      <div className={`fixed inset-0 z-50 transition-all duration-300 ease-in-out transform ${isOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'} bg-[radial-gradient(circle,rgba(255,247,237,1)_0%,rgba(255,247,237,0.6)_100%)] dark:bg-[radial-gradient(circle,rgba(2,6,23,1)_0%,rgba(2,6,23,0.6)_100%)] backdrop-blur-sm`}>
         
         {/* Close Button Area */}
         <div className="absolute top-0 right-0 p-4 pt-5 pr-6">
