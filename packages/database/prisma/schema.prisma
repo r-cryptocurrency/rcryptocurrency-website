@@ -107,7 +107,6 @@ model RedditComment {
   @@index([createdUtc])
   @@index([author])
 }
-}
 
 model ProjectMention {
   id        Int            @id @default(autoincrement())
