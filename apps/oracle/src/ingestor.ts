@@ -3,6 +3,7 @@ import { prisma } from '@rcryptocurrency/database';
 import { CronJob } from 'cron';
 import dotenv from 'dotenv';
 import path from 'path';
+import { updateMarketData } from './market-data';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
@@ -51,44 +52,6 @@ async function fetchNewActivity() {
   }
 }
 
-async function fetchMarketData() {
-  console.log('Fetching MOON market data and Reddit stats...');
-  try {
-    // 1. Fetch CoinGecko Data
-    const apiKey = process.env.COINGECKO_API_KEY;
-    const headers = apiKey ? { 'x-cg-demo-api-key': apiKey } : {};
-    
-    const cgResponse = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=moon&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true', {
-      headers
-    });
-    const cgData = cgResponse.data.moon;
-
-    // 2. Fetch Reddit Subreddit Stats
-    const redditResponse = await axios.get('https://www.reddit.com/r/CryptoCurrency/about.json', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
-    });
-    const redditData = redditResponse.data.data;
-
-    if (cgData) {
-      await prisma.marketStat.create({
-        data: {
-          priceUsd: cgData.usd,
-          marketCap: cgData.usd_market_cap,
-          volume24h: cgData.usd_24h_vol,
-          change24h: cgData.usd_24h_change,
-          redditSubscribers: redditData.subscribers,
-          activeUsers: redditData.active_user_count
-        }
-      });
-      console.log(`Market data updated: $${cgData.usd} | Subscribers: ${redditData.subscribers}`);
-    }
-  } catch (error) {
-    console.error('Error fetching market/reddit data:', error);
-  }
-}
-
 async function ensureUserExists(username: string) {
   // Simple helper to create user record if missing
   await prisma.redditUser.upsert({
@@ -102,10 +65,10 @@ async function ensureUserExists(username: string) {
 const job = new CronJob('*/5 * * * *', fetchNewActivity);
 job.start();
 
-// Run every 10 minutes for market data
-const marketJob = new CronJob('*/10 * * * *', fetchMarketData);
+// Run every 10 minutes for market data (uses Kraken -> Pool -> CoinGecko fallback)
+const marketJob = new CronJob('*/10 * * * *', updateMarketData);
 marketJob.start();
 
 // Initial run
 fetchNewActivity();
-fetchMarketData();
+updateMarketData();
