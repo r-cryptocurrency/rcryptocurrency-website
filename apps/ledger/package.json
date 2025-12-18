@@ -1,5 +1,5 @@
 {
-  "name": "ledger",
+  "name": "@rcryptocurrency/ledger",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -7,13 +7,16 @@
     "build": "tsc",
     "start": "node dist/src/index.js",
     "lint": "eslint .",
-    "label": "ts-node scripts/label-address.ts",
-    "seed:labels": "ts-node scripts/seed-labels.ts",
-    "cleanup": "ts-node scripts/cleanup-duplicates.ts",
+    "ingest-csv": "ts-node src/ingest-csv.ts",
+    "calc-earned-moons": "ts-node scripts/calc-earned-moons.ts",
+    "backfill-burns": "ts-node scripts/backfill-burns.ts",
+    "backfill-swaps": "ts-node scripts/backfill-swaps.ts",
     "refresh-balances": "ts-node scripts/refresh-balances.ts",
-    "monitor-moons": "ts-node -r tsconfig-paths/register scripts/monitor-moons.ts",
-    "monitor": "pnpm monitor-moons",
-    "ingest": "ts-node src/ingest-csv.ts"
+    "health-check": "ts-node scripts/health-check.ts",
+    "monitor": "ts-node -r tsconfig-paths/register scripts/monitor-moons.ts",
+    "seed-labels": "ts-node scripts/seed-labels.ts",
+    "label": "ts-node scripts/label-address.ts",
+    "cleanup": "ts-node scripts/cleanup-duplicates.ts"
   },
   "dependencies": {
     "@rcryptocurrency/chain-data": "workspace:*",

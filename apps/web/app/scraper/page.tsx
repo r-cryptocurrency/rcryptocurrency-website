@@ -7,6 +7,22 @@ import Link from 'next/link';
 
 export const revalidate = 60; // Revalidate every minute
 
+// Calculate the current moon round dynamically
+function getCurrentMoonRound(): { roundNumber: number; startDate: Date; endDate: Date } {
+  // Round 51 started Dec 9, 2025
+  const ROUND_51_START = new Date('2025-12-09T00:00:00Z');
+  const DAYS_PER_ROUND = 28;
+  
+  const now = new Date();
+  const daysSinceRound51 = Math.floor((now.getTime() - ROUND_51_START.getTime()) / (1000 * 60 * 60 * 24));
+  const roundsSinceR51 = Math.max(0, Math.floor(daysSinceRound51 / DAYS_PER_ROUND));
+  
+  const currentRound = 51 + roundsSinceR51;
+  const roundStartDate = new Date(ROUND_51_START.getTime() + (roundsSinceR51 * DAYS_PER_ROUND * 24 * 60 * 60 * 1000));
+  const roundEndDate = new Date(roundStartDate.getTime() + (DAYS_PER_ROUND * 24 * 60 * 60 * 1000) - 1);
+  
+  return { roundNumber: currentRound, startDate: roundStartDate, endDate: roundEndDate };
+}
 
 export default async function ScraperPage({ searchParams }: { searchParams: { range?: string } }) {
   const range = searchParams.range || '24h';
@@ -21,9 +37,8 @@ export default async function ScraperPage({ searchParams }: { searchParams: { ra
     startDate.setHours(startDate.getHours() - 24);
   }
 
-  // --- Round 50 Logic ---
-  const roundEnd = new Date('2025-12-08T23:59:59Z');
-  const roundStart = new Date('2025-11-10T00:00:00Z'); // 28 days prior
+  // --- Dynamic Moon Round ---
+  const { roundNumber, startDate: roundStart, endDate: roundEnd } = getCurrentMoonRound();
 
   // 1. Get Post Scores
   const postScores = await prisma.redditPost.groupBy({
@@ -141,10 +156,10 @@ export default async function ScraperPage({ searchParams }: { searchParams: { ra
           </div>
 
           {/* Karma Leaderboard */}
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Karma Leaderboard (Round 50)</h2>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Karma Leaderboard (Round {roundNumber})</h2>
           <div className="bg-white/80 dark:bg-black/20 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden border border-orange-100 dark:border-white/10 mb-12">
             <div className="bg-orange-100/50 dark:bg-white/5 px-6 py-4 border-b border-orange-100 dark:border-white/10 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white m-0">Top Earners (Nov 10 - Dec 8)</h3>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white m-0">Top Earners ({roundStart.toLocaleDateString()} - {roundEnd.toLocaleDateString()})</h3>
               <span className="text-xs text-slate-500 dark:text-slate-400">Based on scraped posts/comments</span>
             </div>
             <div className="p-6">

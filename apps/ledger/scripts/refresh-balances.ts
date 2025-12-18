@@ -417,7 +417,7 @@ async function main() {
   console.log(`Found ${holders.length} addresses to refresh.`);
 
   // Reduced batch size to avoid RPC timeouts
-  const BATCH_SIZE = 20;
+  const BATCH_SIZE = 100;
   
   for (let i = 0; i < holders.length; i += BATCH_SIZE) {
     const batch = holders.slice(i, i + BATCH_SIZE);
@@ -518,11 +518,12 @@ async function main() {
   }
 
   if (!targetAddress) {
-    console.log("Balances updated. Now calculating Earned Moons (this takes a long time)...");
-    await updateEarnedMoons();
+    // NOTE: Earned moons calculation is now a separate script (calc-earned-moons.ts)
+    // Run it separately: pnpm --filter @rcryptocurrency/ledger run calc-earned-moons
+    console.log("Balances updated.");
+    console.log("NOTE: To calculate earned moons, run: pnpm --filter @rcryptocurrency/ledger run calc-earned-moons");
   } else {
-    console.log("Calculating Earned Moons for single address...");
-    await updateEarnedMoons(targetAddress);
+    console.log("Balance updated for single address.");
   }
 
   console.log("Done!");

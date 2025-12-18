@@ -1,8 +1,11 @@
 import { createPublicClient, http, parseAbiItem, formatUnits } from 'viem';
-import { arbitrum } from 'viem/chains';
+import { arbitrum, mainnet } from 'viem/chains';
 import { prisma } from '@rcryptocurrency/database';
 import { MOON_CONTRACTS } from '@rcryptocurrency/chain-data';
 import dotenv from 'dotenv';
+import path from 'path';
+
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 // Define Arbitrum Nova manually since it might be missing in this viem version
 const arbitrumNova = {
@@ -30,13 +33,11 @@ const arbitrumNova = {
   },
 };
 
-dotenv.config();
-
 const BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
 const TRANSFER_EVENT = parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)');
 
 // Use a conservative chunk size for public RPCs
-const CHUNK_SIZE = 2000n;
+const CHUNK_SIZE = 10000n;
 const DELAY_MS = 200;
 
 async function getBlockTimestamp(client: any, blockNumber: bigint): Promise<Date> {
@@ -44,44 +45,65 @@ async function getBlockTimestamp(client: any, blockNumber: bigint): Promise<Date
   return new Date(Number(block.timestamp) * 1000);
 }
 
+// Get the last processed block for a chain to resume from
+async function getLastBurnBlock(chain: string): Promise<bigint> {
+  const lastBurn = await prisma.burn.findFirst({
+    where: { chain },
+    orderBy: { blockNumber: 'desc' },
+    select: { blockNumber: true }
+  });
+  return lastBurn ? BigInt(lastBurn.blockNumber) : 0n;
+}
+
 async function scanChain(
   chainName: string,
   chainObj: any,
   rpcUrl: string,
-  tokenAddress: `0x${string}`,
-  startBlock: bigint
+  tokenAddress: `0x${string}`
 ) {
-  console.log(`Starting scan for ${chainName} using ${rpcUrl}...`);
+  console.log(`\n=== Starting scan for ${chainName} ===`);
+  console.log(`RPC: ${rpcUrl.replace(/([a-zA-Z0-9]{10})[a-zA-Z0-9]+/, '$1...')}`);
 
   const client = createPublicClient({
     chain: chainObj,
-    transport: http(rpcUrl),
+    transport: http(rpcUrl, { timeout: 60_000 }),
   });
 
   const currentBlock = await client.getBlockNumber();
-  console.log(`Current block on ${chainName}: ${currentBlock}`);
+  const lastProcessedBlock = await getLastBurnBlock(chainName);
+  const startBlock = lastProcessedBlock > 0n ? lastProcessedBlock + 1n : 0n;
+  
+  console.log(`Current block: ${currentBlock}`);
+  console.log(`Last processed: ${lastProcessedBlock}`);
+  console.log(`Starting from: ${startBlock}`);
+
+  if (startBlock >= currentBlock) {
+    console.log(`✅ ${chainName} is already up to date!`);
+    return;
+  }
 
   let fromBlock = startBlock;
+  let totalBurns = 0;
 
   while (fromBlock < currentBlock) {
     const toBlock = fromBlock + CHUNK_SIZE > currentBlock ? currentBlock : fromBlock + CHUNK_SIZE;
     
-    // console.log(`Scanning ${chainName} blocks ${fromBlock} to ${toBlock}...`);
-    process.stdout.write(`\rScanning ${chainName}: ${fromBlock}/${currentBlock} (${Math.round(Number(fromBlock)/Number(currentBlock)*100)}%)`);
+    const progress = ((Number(fromBlock - startBlock) / Number(currentBlock - startBlock)) * 100).toFixed(1);
+    process.stdout.write(`\r[${progress}%] Scanning ${chainName} blocks ${fromBlock} to ${toBlock}...`);
 
     try {
       const logs = await client.getLogs({
         address: tokenAddress,
         event: TRANSFER_EVENT,
         args: {
-          to: BURN_ADDRESS,
+          to: BURN_ADDRESS as `0x${string}`,
         },
         fromBlock,
         toBlock,
       });
 
       if (logs.length > 0) {
-        console.log(`\nFound ${logs.length} burn events in this chunk.`);
+        console.log(`\n   Found ${logs.length} burn events in this chunk.`);
       }
 
       for (const log of logs) {
@@ -91,35 +113,29 @@ async function scanChain(
 
         if (!txHash || !blockNumber || !value || !from) continue;
 
-        // Check if already exists to avoid re-fetching timestamp
-        const existing = await prisma.burn.findUnique({
-          where: { txHash },
-        });
-
-        if (existing) {
-          continue;
-        }
-
         const timestamp = await getBlockTimestamp(client, blockNumber);
         const amount = parseFloat(formatUnits(value, 18));
 
-        await prisma.burn.create({
-          data: {
+        // Use upsert to handle duplicates gracefully
+        await prisma.burn.upsert({
+          where: { txHash },
+          update: {}, // Don't update if exists
+          create: {
             txHash,
             blockNumber: Number(blockNumber),
             timestamp,
             amount,
             chain: chainName,
-            sender: from,
+            sender: from.toLowerCase(),
           },
         });
+        totalBurns++;
         process.stdout.write(' [Saved]');
       }
 
-    } catch (error) {
-      console.error(`\nError scanning chunk ${fromBlock}-${toBlock}:`, error);
-      // If error, try to sleep longer and retry same chunk? 
-      // For now, just sleep and continue (might miss blocks, but safer to restart script)
+    } catch (error: any) {
+      console.error(`\nError scanning chunk ${fromBlock}-${toBlock}:`, error.message || error);
+      // Sleep longer on error
       await new Promise(r => setTimeout(r, 5000));
     }
 
@@ -129,28 +145,44 @@ async function scanChain(
     fromBlock = toBlock + 1n;
   }
 
-  console.log(`\nFinished scanning ${chainName}.`);
+  console.log(`\n✅ Finished scanning ${chainName}. Found ${totalBurns} new burns.`);
 }
 
 async function main() {
-  // Use Public RPCs for backfill to avoid burning API credits
-  // Arbitrum Nova Public RPC
+  console.log('=== BACKFILL BURNS ===\n');
+  console.log('This script scans all chains for historical burns to 0xdead.');
+  console.log('It will resume from where it left off.\n');
+
+  // Use QuickNode RPCs for faster scanning (using up credits as requested)
+  const novaRpc = process.env.QUICKNODE_URL_NOVA || 'https://nova.arbitrum.io/rpc';
+  const oneRpc = process.env.QUICKNODE_URL_ONE || 'https://arb1.arbitrum.io/rpc';
+  const ethRpc = process.env.QUICKNODE_URL_ETH || 'https://eth.llamarpc.com';
+
+  // Arbitrum Nova
   await scanChain(
     'Arbitrum Nova',
     arbitrumNova,
-    'https://nova.arbitrum.io/rpc',
-    MOON_CONTRACTS.arbitrumNova,
-    0n 
+    novaRpc,
+    MOON_CONTRACTS.arbitrumNova as `0x${string}`
   );
 
-  // Arbitrum One Public RPC
+  // Arbitrum One
   await scanChain(
     'Arbitrum One',
     arbitrum,
-    'https://arb1.arbitrum.io/rpc',
-    MOON_CONTRACTS.arbitrumOne,
-    0n 
+    oneRpc,
+    MOON_CONTRACTS.arbitrumOne as `0x${string}`
   );
+
+  // Ethereum Mainnet
+  await scanChain(
+    'Ethereum',
+    mainnet,
+    ethRpc,
+    MOON_CONTRACTS.ethereum as `0x${string}`
+  );
+
+  console.log('\n=== BACKFILL COMPLETE ===');
 }
 
 main()

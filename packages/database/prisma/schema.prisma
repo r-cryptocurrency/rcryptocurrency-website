@@ -22,6 +22,8 @@ model Holder {
   user           RedditUser? @relation(fields: [username], references: [username])
 
   @@index([totalBalance])
+  @@index([lastTransferAt])
+  @@index([username])
 }
 
 model LiquiditySnapshot {
@@ -84,6 +86,9 @@ model RedditPost {
   updatedAt   DateTime         @updatedAt
   mentions    ProjectMention[]
   comments    RedditComment[]
+
+  @@index([createdUtc])
+  @@index([author])
 }
 
 model RedditComment {
@@ -98,6 +103,10 @@ model RedditComment {
   updatedAt  DateTime         @updatedAt
   mentions   ProjectMention[]
   post       RedditPost       @relation(fields: [postId], references: [id])
+
+  @@index([createdUtc])
+  @@index([author])
+}
 }
 
 model ProjectMention {
@@ -127,6 +136,10 @@ model Burn {
   amount      Float
   chain       String
   sender      String
+
+  @@index([timestamp])
+  @@index([chain])
+  @@index([sender])
 }
 
 model Swap {
@@ -142,4 +155,8 @@ model Swap {
   tokenOut    String
   usdValue    Float?
   maker       String
+
+  @@index([timestamp])
+  @@index([maker])
+  @@index([dex])
 }
