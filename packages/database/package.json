@@ -7,7 +7,8 @@
   "scripts": {
     "build": "tsc",
     "db:generate": "set -a; . ../../.env; set +a; prisma generate",
-    "db:push": "set -a; . ../../.env; set +a; prisma db push"
+    "db:push": "set -a; . ../../.env; set +a; prisma db push",
+    "db:reset": "set -a; . ../../.env; set +a; prisma migrate reset --force"
   },
   "dependencies": {
     "@prisma/client": "^4.14.0"
