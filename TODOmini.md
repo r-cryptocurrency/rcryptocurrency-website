@@ -55,7 +55,7 @@ Optional (fallback):
 docker-compose up -d db
 
 # Reset and migrate database
-pnpm prisma migrate reset --force
+pnpm --filter @rcryptocurrency/database db:reset
 ```
 
 ---
