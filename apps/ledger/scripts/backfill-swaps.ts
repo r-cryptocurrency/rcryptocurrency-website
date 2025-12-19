@@ -78,10 +78,11 @@ async function fetchLogsWithRetry(
   address: string,
   event: any,
   fromBlock: bigint,
-  toBlock: bigint,
-  maxRetries = 5
+  toBlock: bigint
 ): Promise<any[]> {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
+  let attempt = 0;
+  
+  while (true) {
     try {
       return await client.getLogs({
         address: address as `0x${string}`,
@@ -92,20 +93,21 @@ async function fetchLogsWithRetry(
     } catch (error: any) {
       const msg = error.message || '';
       
-      // Rate limit - wait and retry
+      // Rate limit - wait and retry forever (don't give up)
       if (msg.includes('429') || msg.includes('rate limit') || msg.includes('Rate Limit')) {
-        const waitTime = Math.pow(2, attempt) * 10000; // 10s, 20s, 40s, 80s, 160s
-        console.log(`\n   Rate limited. Waiting ${waitTime/1000}s before retry ${attempt + 1}/${maxRetries}...`);
+        attempt++;
+        const waitTime = Math.min(Math.pow(2, attempt) * 5000, 120000); // Max 2 minutes
+        console.log(`\n   Rate limited. Waiting ${waitTime/1000}s... (attempt ${attempt})`);
         await sleep(waitTime);
         continue;
       }
       
-      // Request too large - this shouldn't happen with proper chunk sizes, but reduce if it does
+      // Request too large - reduce chunk
       if (msg.includes('413')) {
         throw new Error('CHUNK_TOO_LARGE');
       }
       
-      // Block range error - shouldn't happen
+      // Block range error
       if (msg.includes('block range') || msg.includes('10 block')) {
         throw new Error('CHUNK_TOO_LARGE');
       }
@@ -115,12 +117,15 @@ async function fetchLogsWithRetry(
         throw new Error('DAILY_LIMIT');
       }
       
-      // Other error - retry after short delay
-      console.log(`\n   Error: ${msg.substring(0, 80)}. Retry ${attempt + 1}/${maxRetries}...`);
+      // Other error - retry a few times
+      attempt++;
+      if (attempt > 10) {
+        throw new Error(`PERSISTENT_ERROR: ${msg.substring(0, 100)}`);
+      }
+      console.log(`\n   Error: ${msg.substring(0, 80)}. Retry ${attempt}...`);
       await sleep(5000);
     }
   }
-  throw new Error('MAX_RETRIES_EXCEEDED');
 }
 
 async function scanPool(pool: PoolConfig): Promise<boolean> {
@@ -275,12 +280,8 @@ async function scanPool(pool: PoolConfig): Promise<boolean> {
         return false;
       }
       
-      if (error.message === 'MAX_RETRIES_EXCEEDED') {
-        console.error('\n   Max retries exceeded. Stopping to preserve progress.');
-        return false;
-      }
-      
-      console.error(`\n   Unexpected error: ${error.message}`);
+      // For persistent errors or unexpected errors, log but keep going
+      console.error(`\n   Error: ${error.message}. Progress saved, you can restart.`);
       return false;
     }
   }
