@@ -1,4 +1,4 @@
-import { createPublicClient, http, parseAbiItem, formatUnits } from 'viem';
+import { createPublicClient, http, fallback, parseAbiItem, formatUnits } from 'viem';
 import { arbitrum, mainnet } from 'viem/chains';
 import { prisma } from '@rcryptocurrency/database';
 import { MOON_CONTRACTS } from '@rcryptocurrency/chain-data';
@@ -6,6 +6,19 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+
+// Load RPC URLs from environment
+const QUICKNODE_URL_NOVA = process.env.QUICKNODE_URL_NOVA;
+const QUICKNODE_URL_ONE = process.env.QUICKNODE_URL_ONE;
+const QUICKNODE_URL_ETH = process.env.QUICKNODE_URL_ETH;
+const ALCHEMY_URL_NOVA = process.env.ALCHEMY_URL_NOVA;
+const ALCHEMY_URL_ONE = process.env.ALCHEMY_URL_ONE;
+const ALCHEMY_URL_ETH = process.env.ALCHEMY_URL_ETH;
+
+console.log('RPC Configuration:');
+console.log(`  Nova: ${QUICKNODE_URL_NOVA ? 'QuickNode ✓' : 'Public only'}, ${ALCHEMY_URL_NOVA ? 'Alchemy ✓' : ''}`);
+console.log(`  One:  ${QUICKNODE_URL_ONE ? 'QuickNode ✓' : 'Public only'}, ${ALCHEMY_URL_ONE ? 'Alchemy ✓' : ''}`);
+console.log(`  ETH:  ${QUICKNODE_URL_ETH ? 'QuickNode ✓' : 'Public only'}, ${ALCHEMY_URL_ETH ? 'Alchemy ✓' : ''}`);
 
 // Define Arbitrum Nova manually since it might be missing in this viem version
 const arbitrumNova = {
@@ -36,9 +49,58 @@ const arbitrumNova = {
 const BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
 const TRANSFER_EVENT = parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)');
 
-// Use a conservative chunk size for public RPCs
-const CHUNK_SIZE = 2000n;
-const DELAY_MS = 200;
+// QuickNode can handle larger chunks than public RPCs
+const CHUNK_SIZE = 5000n;
+const DELAY_MS = 100;
+const MAX_RETRIES = 5;
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+async function withRetry<T>(fn: () => Promise<T>, retries = MAX_RETRIES, baseDelay = 1000): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      const isRateLimit = error.message?.includes('429') || error.message?.includes('rate limit');
+      const delay = isRateLimit ? baseDelay * Math.pow(2, i) : baseDelay;
+      
+      if (i === retries - 1) throw error;
+      console.log(`\n   Retry ${i + 1}/${retries} after ${delay}ms...`);
+      await sleep(delay);
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
+// Build fallback RPC transports (QuickNode primary, Alchemy secondary, Public fallback)
+function getNovaTransport() {
+  const urls = [
+    QUICKNODE_URL_NOVA,
+    ALCHEMY_URL_NOVA,
+    'https://nova.arbitrum.io/rpc'
+  ].filter(Boolean) as string[];
+  return fallback(urls.map(url => http(url, { timeout: 60_000 })));
+}
+
+function getOneTransport() {
+  const urls = [
+    QUICKNODE_URL_ONE,
+    ALCHEMY_URL_ONE,
+    'https://arb1.arbitrum.io/rpc'
+  ].filter(Boolean) as string[];
+  return fallback(urls.map(url => http(url, { timeout: 60_000 })));
+}
+
+function getEthTransport() {
+  const urls = [
+    QUICKNODE_URL_ETH,
+    ALCHEMY_URL_ETH,
+    'https://eth.llamarpc.com'
+  ].filter(Boolean) as string[];
+  return fallback(urls.map(url => http(url, { timeout: 60_000 })));
+}
 
 async function getBlockTimestamp(client: any, blockNumber: bigint): Promise<Date> {
   const block = await client.getBlock({ blockNumber });
@@ -58,15 +120,14 @@ async function getLastBurnBlock(chain: string): Promise<bigint> {
 async function scanChain(
   chainName: string,
   chainObj: any,
-  rpcUrl: string,
+  transport: any,
   tokenAddress: `0x${string}`
 ) {
   console.log(`\n=== Starting scan for ${chainName} ===`);
-  console.log(`RPC: ${rpcUrl.replace(/([a-zA-Z0-9]{10})[a-zA-Z0-9]+/, '$1...')}`);
 
   const client = createPublicClient({
     chain: chainObj,
-    transport: http(rpcUrl, { timeout: 60_000 }),
+    transport,
   });
 
   const currentBlock = await client.getBlockNumber();
@@ -92,7 +153,7 @@ async function scanChain(
     process.stdout.write(`\r[${progress}%] Scanning ${chainName} blocks ${fromBlock} to ${toBlock}...`);
 
     try {
-      const logs = await client.getLogs({
+      const logs = await withRetry(() => client.getLogs({
         address: tokenAddress,
         event: TRANSFER_EVENT,
         args: {
@@ -100,7 +161,7 @@ async function scanChain(
         },
         fromBlock,
         toBlock,
-      });
+      }));
 
       if (logs.length > 0) {
         console.log(`\n   Found ${logs.length} burn events in this chunk.`);
@@ -166,20 +227,14 @@ async function scanChain(
 async function main() {
   console.log('=== BACKFILL BURNS ===\n');
   console.log('This script scans all chains for historical burns to 0xdead.');
-  console.log('It will resume from where it left off.\n');
-
-  // Use FREE public RPCs for historical backfills
-  // QuickNode free tier has 5-block limit for eth_getLogs which is useless for backfills
-  // Save QuickNode credits for real-time monitoring instead
-  const novaRpc = 'https://nova.arbitrum.io/rpc';
-  const oneRpc = 'https://arb1.arbitrum.io/rpc';
-  const ethRpc = 'https://eth.llamarpc.com';
+  console.log('It will resume from where it left off.');
+  console.log('Using QuickNode as primary RPC with Alchemy/public fallback.\n');
 
   // Arbitrum Nova
   await scanChain(
     'Arbitrum Nova',
     arbitrumNova,
-    novaRpc,
+    getNovaTransport(),
     MOON_CONTRACTS.arbitrumNova as `0x${string}`
   );
 
@@ -187,7 +242,7 @@ async function main() {
   await scanChain(
     'Arbitrum One',
     arbitrum,
-    oneRpc,
+    getOneTransport(),
     MOON_CONTRACTS.arbitrumOne as `0x${string}`
   );
 
@@ -195,7 +250,7 @@ async function main() {
   await scanChain(
     'Ethereum',
     mainnet,
-    ethRpc,
+    getEthTransport(),
     MOON_CONTRACTS.ethereum as `0x${string}`
   );
 

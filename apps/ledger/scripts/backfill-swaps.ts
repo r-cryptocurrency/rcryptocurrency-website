@@ -1,4 +1,4 @@
-import { createPublicClient, http, parseAbiItem, formatUnits } from 'viem';
+import { createPublicClient, http, fallback, parseAbiItem, formatUnits } from 'viem';
 import { arbitrum } from 'viem/chains';
 import { prisma } from '@rcryptocurrency/database';
 import { MOON_CONTRACTS, LIQUIDITY_POOLS } from '@rcryptocurrency/chain-data';
@@ -6,6 +6,16 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+
+// Load RPC URLs from environment
+const QUICKNODE_URL_NOVA = process.env.QUICKNODE_URL_NOVA;
+const QUICKNODE_URL_ONE = process.env.QUICKNODE_URL_ONE;
+const ALCHEMY_URL_NOVA = process.env.ALCHEMY_URL_NOVA;
+const ALCHEMY_URL_ONE = process.env.ALCHEMY_URL_ONE;
+
+console.log('RPC Configuration:');
+console.log(`  Nova: ${QUICKNODE_URL_NOVA ? 'QuickNode ✓' : 'Public only'}, ${ALCHEMY_URL_NOVA ? 'Alchemy ✓' : ''}`);
+console.log(`  One:  ${QUICKNODE_URL_ONE ? 'QuickNode ✓' : 'Public only'}, ${ALCHEMY_URL_ONE ? 'Alchemy ✓' : ''}`);
 
 // Define Arbitrum Nova
 const arbitrumNova = {
@@ -25,8 +35,29 @@ const SWAP_V2_EVENT = parseAbiItem('event Swap(address indexed sender, uint256 a
 // Uniswap V3/Camelot V3 Swap event
 const SWAP_V3_EVENT = parseAbiItem('event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)');
 
-const CHUNK_SIZE = 2000n;
-const DELAY_MS = 200;
+const CHUNK_SIZE = 5000n; // QuickNode can handle larger chunks
+const DELAY_MS = 100; // Faster with dedicated RPC
+const MAX_RETRIES = 5;
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+async function withRetry<T>(fn: () => Promise<T>, retries = MAX_RETRIES, baseDelay = 1000): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      const isRateLimit = error.message?.includes('429') || error.message?.includes('rate limit');
+      const delay = isRateLimit ? baseDelay * Math.pow(2, i) : baseDelay;
+      
+      if (i === retries - 1) throw error;
+      console.log(`\n   Retry ${i + 1}/${retries} after ${delay}ms...`);
+      await sleep(delay);
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
 
 interface PoolConfig {
   chain: string;
@@ -35,7 +66,8 @@ interface PoolConfig {
   address: string;
   type: 'V2' | 'V3';
   name: string;
-  moonIsToken0: boolean; // Whether MOON is token0 in the pair
+  moonIsToken0: boolean;
+  transport?: any; // Optional transport with fallback
 }
 
 // Get the last processed block for a DEX
@@ -60,7 +92,7 @@ async function scanPool(pool: PoolConfig) {
 
   const client = createPublicClient({
     chain: pool.chainObj,
-    transport: http(pool.rpcUrl, { timeout: 60_000 }),
+    transport: pool.transport || http(pool.rpcUrl, { timeout: 60_000 }),
   });
 
   const currentBlock = await client.getBlockNumber();
@@ -86,22 +118,22 @@ async function scanPool(pool: PoolConfig) {
     process.stdout.write(`\r[${progress}%] Scanning blocks ${fromBlock} to ${toBlock}...`);
 
     try {
-      // Fetch logs based on pool type
+      // Fetch logs based on pool type with retry logic
       let logs: any[];
       if (pool.type === 'V2') {
-        logs = await client.getLogs({
+        logs = await withRetry(() => client.getLogs({
           address: pool.address as `0x${string}`,
           event: SWAP_V2_EVENT,
           fromBlock,
           toBlock,
-        });
+        }));
       } else {
-        logs = await client.getLogs({
+        logs = await withRetry(() => client.getLogs({
           address: pool.address as `0x${string}`,
           event: SWAP_V3_EVENT,
           fromBlock,
           toBlock,
-        });
+        }));
       }
 
       if (logs.length > 0) {
@@ -208,43 +240,61 @@ async function scanPool(pool: PoolConfig) {
   console.log(`\n✅ Finished scanning ${pool.name}. Found ${totalSwaps} new swaps.`);
 }
 
+// Build fallback RPC URLs (QuickNode primary, Alchemy secondary, Public fallback)
+function getNovaRpcTransport() {
+  const urls = [
+    QUICKNODE_URL_NOVA,
+    ALCHEMY_URL_NOVA,
+    'https://nova.arbitrum.io/rpc'
+  ].filter(Boolean) as string[];
+  return fallback(urls.map(url => http(url, { timeout: 60_000 })));
+}
+
+function getOneRpcTransport() {
+  const urls = [
+    QUICKNODE_URL_ONE,
+    ALCHEMY_URL_ONE,
+    'https://arb1.arbitrum.io/rpc'
+  ].filter(Boolean) as string[];
+  return fallback(urls.map(url => http(url, { timeout: 60_000 })));
+}
+
 async function main() {
   console.log('=== BACKFILL SWAPS ===\n');
   console.log('This script scans all DEX pools for historical swap events.');
-  console.log('It will resume from where it left off.\n');
-
-  // Use FREE public RPCs for historical backfills
-  // QuickNode free tier has 5-block limit for eth_getLogs which is useless for backfills
-  const novaRpc = 'https://nova.arbitrum.io/rpc';
-  const oneRpc = 'https://arb1.arbitrum.io/rpc';
+  console.log('It will resume from where it left off.');
+  console.log('Using QuickNode as primary RPC with Alchemy/public fallback.\n');
 
   const pools: PoolConfig[] = [
     {
       chain: 'Arbitrum Nova',
       chainObj: arbitrumNova,
-      rpcUrl: novaRpc,
+      rpcUrl: '', // Now using transport
       address: LIQUIDITY_POOLS.nova.sushiSwapV2,
       type: 'V2',
       name: 'SushiSwap V2 (Nova)',
-      moonIsToken0: true, // Check contract to confirm
+      moonIsToken0: true,
+      transport: getNovaRpcTransport(),
     },
     {
       chain: 'Arbitrum One',
       chainObj: arbitrum,
-      rpcUrl: oneRpc,
+      rpcUrl: '',
       address: LIQUIDITY_POOLS.one.camelotV3,
       type: 'V3',
       name: 'Camelot V3',
-      moonIsToken0: true, // Check contract to confirm
+      moonIsToken0: true,
+      transport: getOneRpcTransport(),
     },
     {
       chain: 'Arbitrum One',
       chainObj: arbitrum,
-      rpcUrl: oneRpc,
+      rpcUrl: '',
       address: LIQUIDITY_POOLS.one.uniswapV3,
       type: 'V3',
       name: 'Uniswap V3',
-      moonIsToken0: true, // Check contract to confirm
+      moonIsToken0: true,
+      transport: getOneRpcTransport(),
     },
   ];
 
