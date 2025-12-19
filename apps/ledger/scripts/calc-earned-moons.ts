@@ -40,15 +40,13 @@ const TRANSFER_EVENT = parseAbiItem('event Transfer(address indexed from, addres
 const STATE_FILE = path.resolve(__dirname, 'earned-moons-state.json');
 
 // Addresses that distribute earned moons
-// Genesis: Initial distribution
-// TheMoonDistributor: Used for mod distributions
 const DISTRIBUTORS = [
   '0x0000000000000000000000000000000000000000', // Genesis
-  '0xda9338361d1cfab5813a92697c3f0c0c42368fb3'  // TheMoonDistributor (lowercase!)
+  '0xda9338361d1cfab5813a92697c3f0c0c42368fb3'  // TheMoonDistributor
 ];
 
 interface DistributorState {
-  lastBlock: string; // Store as string for JSON serialization
+  lastBlock: string;
 }
 
 interface State {
@@ -61,15 +59,16 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 5, delay = 2000): Pr
     return await fn();
   } catch (e: any) {
     if (retries === 0) throw e;
-    const isRetryable = e?.message?.includes('429') || 
-                        e?.message?.includes('timeout') ||
-                        e?.message?.includes('Too Many Requests') ||
-                        e?.message?.includes('limit') ||
-                        e?.message?.includes('range'); // Handle block range errors by retrying (caller should handle resizing)
+    const msg = e?.message || '';
+    const isRetryable = msg.includes('429') || 
+                        msg.includes('timeout') ||
+                        msg.includes('Too Many Requests') ||
+                        msg.includes('limit') ||
+                        msg.includes('range');
     
     if (isRetryable) {
-      console.warn(`⚠️  RPC Error: ${e.message?.slice(0, 100)}...`);
-      console.warn(`   Retrying in ${delay}ms... (${retries} left)`);
+      console.warn('RPC Error: ' + msg.slice(0, 100) + '...');
+      console.warn('Retrying in ' + delay + 'ms... (' + retries + ' left)');
       await new Promise(r => setTimeout(r, delay));
       return withRetry(fn, retries - 1, delay * 2);
     }
@@ -79,7 +78,7 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 5, delay = 2000): Pr
 
 function loadState(): State {
   if (fs.existsSync(STATE_FILE)) {
-    console.log(`📂 Loading progress from ${STATE_FILE}...`);
+    console.log('Loading progress from ' + STATE_FILE + '...');
     const raw = fs.readFileSync(STATE_FILE, 'utf-8');
     return JSON.parse(raw);
   }
@@ -95,26 +94,25 @@ async function calculateEarnedMoons() {
   console.log('This scans ALL transfers from genesis and distributor addresses.');
   console.log('This will take a LONG time (hours) - use QuickNode credits!\n');
   console.log('RPCs configured:');
-  console.log(`  - Free Public RPC: Yes (primary)`);
-  console.log(`  - QuickNode: ${process.env.QUICKNODE_URL_NOVA ? 'Yes (fallback)' : 'No'}`);
-  console.log(`  - QuickNode: ${process.env.QUICKNODE_URL_NOVA ? 'Yes (primary)' : 'No'}`);
-  console.log(`  - Free Public RPC: Yes (fallback)
+  console.log('  - QuickNode: ' + (process.env.QUICKNODE_URL_NOVA ? 'Yes (primary)' : 'No'));
+  console.log('  - Free Public RPC: Yes (fallback)');
+  console.log('');
+
   const state = loadState();
   const earnedMap = new Map<string, number>(Object.entries(state.earnedMap));
   let totalTransfers = 0;
 
   const currentBlock = await client.getBlockNumber();
-  console.log(`Current block: ${currentBlock}\n`);
+  console.log('Current block: ' + currentBlock + '\n');
 
   for (const distributor of DISTRIBUTORS) {
-    console.log(`📡 Scanning transfers FROM ${distributor}...`);
+    console.log('Scanning transfers FROM ' + distributor + '...');
     
-    // Resume from last block or start at 0
     let fromBlock = state.distributors[distributor] 
       ? BigInt(state.distributors[distributor].lastBlock) + 1n 
       : 0n;
       
-    let chunkSize = 2000n; // Start with a safer chunk size
+    let chunkSize = 2000n;
     
     while (fromBlock < currentBlock) {
       const toBlock = fromBlock + chunkSize > currentBlock ? currentBlock : fromBlock + chunkSize;
@@ -132,7 +130,6 @@ async function calculateEarnedMoons() {
           const to = log.args.to?.toLowerCase();
           const value = Number(log.args.value) / 1e18;
           
-          // Skip transfers TO the distributor itself (intermediate step for mod distributions)
           if (to === '0xda9338361d1cfab5813a92697c3f0c0c42368fb3') continue;
 
           if (to && value > 0) {
@@ -142,47 +139,41 @@ async function calculateEarnedMoons() {
           }
         }
 
-        // Update state
         state.distributors[distributor] = { lastBlock: toBlock.toString() };
         state.earnedMap = Object.fromEntries(earnedMap);
         saveState(state);
 
-        process.stdout.write(`\r   Block ${toBlock}/${currentBlock} | Found ${logs.length} transfers | Total: ${totalTransfers}`);
+        process.stdout.write('\r   Block ' + toBlock + '/' + currentBlock + ' | Found ' + logs.length + ' transfers | Total: ' + totalTransfers);
         
         fromBlock = toBlock + 1n;
 
       } catch (e: any) {
-        console.error(`\n❌ Error fetching logs: ${e.message?.slice(0, 100)}`);
+        console.error('\nError fetching logs: ' + (e.message?.slice(0, 100) || e));
         
-        // Dynamic chunk sizing
         if (chunkSize > 100n) {
           chunkSize = chunkSize / 2n;
-          console.log(`   📉 Reducing chunk size to ${chunkSize} and retrying...`);
+          console.log('Reducing chunk size to ' + chunkSize + ' and retrying...');
         } else {
-          console.error('   ❌ Chunk size too small, aborting.');
+          console.error('Chunk size too small, aborting.');
           throw e;
         }
       }
     }
-    console.log('\n   ✅ Distributor scan complete.\n');
+    console.log('\n   Distributor scan complete.\n');
   }
 
-  console.log(`\n✅ Found ${earnedMap.size} addresses with earned moons`);
-  console.log(`   Total transfers processed: ${totalTransfers}`);
+  console.log('\nFound ' + earnedMap.size + ' addresses with earned moons');
+  console.log('Total transfers processed: ' + totalTransfers);
 
-  // Update database
-  console.log('\n📥 Updating RedditUser.earnedMoons...');
+  console.log('\nUpdating RedditUser.earnedMoons...');
   
-  // Get all holders with usernames
   const holders = await prisma.holder.findMany({
     where: { username: { not: null } },
     select: { address: true, username: true }
   });
 
-  console.log(`   Found ${holders.length} holders with Reddit usernames`);
+  console.log('Found ' + holders.length + ' holders with Reddit usernames');
 
-  // Map addresses to usernames and aggregate earned per user
-  // (Some users may have multiple addresses)
   const userEarned = new Map<string, number>();
   
   for (const holder of holders) {
@@ -193,9 +184,8 @@ async function calculateEarnedMoons() {
     }
   }
 
-  console.log(`   Mapped to ${userEarned.size} Reddit users`);
+  console.log('Mapped to ' + userEarned.size + ' Reddit users');
 
-  // Batch update
   const updates = Array.from(userEarned.entries());
   const BATCH = 500;
   
@@ -209,20 +199,19 @@ async function calculateEarnedMoons() {
         })
       )
     );
-    process.stdout.write(`\r   Progress: ${Math.min(i + BATCH, updates.length)}/${updates.length}`);
+    process.stdout.write('\r   Progress: ' + Math.min(i + BATCH, updates.length) + '/' + updates.length);
   }
 
-  // Print top earners
-  console.log('\n\n🏆 Top 10 Earned Moons:');
+  console.log('\n\nTop 10 Earned Moons:');
   const topEarners = Array.from(userEarned.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
   
   topEarners.forEach(([username, amount], i) => {
-    console.log(`   ${i + 1}. ${username}: ${amount.toLocaleString()} moons`);
+    console.log('   ' + (i + 1) + '. ' + username + ': ' + amount.toLocaleString() + ' moons');
   });
 
-  console.log('\n✅ Earned moons calculation complete!');
+  console.log('\nEarned moons calculation complete!');
 }
 
 calculateEarnedMoons()
