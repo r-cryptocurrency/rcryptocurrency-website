@@ -37,7 +37,7 @@ const BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
 const TRANSFER_EVENT = parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)');
 
 // Use a conservative chunk size for public RPCs
-const CHUNK_SIZE = 10000n;
+const CHUNK_SIZE = 2000n;
 const DELAY_MS = 200;
 
 async function getBlockTimestamp(client: any, blockNumber: bigint): Promise<Date> {

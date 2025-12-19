@@ -25,7 +25,7 @@ const SWAP_V2_EVENT = parseAbiItem('event Swap(address indexed sender, uint256 a
 // Uniswap V3/Camelot V3 Swap event
 const SWAP_V3_EVENT = parseAbiItem('event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)');
 
-const CHUNK_SIZE = 10000n;
+const CHUNK_SIZE = 2000n;
 const DELAY_MS = 200;
 
 interface PoolConfig {

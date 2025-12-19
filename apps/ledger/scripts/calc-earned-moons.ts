@@ -3,6 +3,7 @@ import { prisma } from '@rcryptocurrency/database';
 import { MOON_CONTRACTS } from '@rcryptocurrency/chain-data';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import * as fs from 'fs';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
@@ -34,6 +35,9 @@ const client = createPublicClient({
 
 const TRANSFER_EVENT = parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)');
 
+// State file for resuming
+const STATE_FILE = path.resolve(__dirname, 'earned-moons-state.json');
+
 // Addresses that distribute earned moons
 // Genesis: Initial distribution
 // TheMoonDistributor: Used for mod distributions
@@ -42,21 +46,47 @@ const DISTRIBUTORS = [
   '0xda9338361d1cfab5813a92697c3f0c0c42368fb3'  // TheMoonDistributor (lowercase!)
 ];
 
-async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> {
+interface DistributorState {
+  lastBlock: string; // Store as string for JSON serialization
+}
+
+interface State {
+  earnedMap: Record<string, number>;
+  distributors: Record<string, DistributorState>;
+}
+
+async function withRetry<T>(fn: () => Promise<T>, retries = 5, delay = 2000): Promise<T> {
   try {
     return await fn();
   } catch (e: any) {
     if (retries === 0) throw e;
     const isRetryable = e?.message?.includes('429') || 
                         e?.message?.includes('timeout') ||
-                        e?.message?.includes('Too Many Requests');
+                        e?.message?.includes('Too Many Requests') ||
+                        e?.message?.includes('limit') ||
+                        e?.message?.includes('range'); // Handle block range errors by retrying (caller should handle resizing)
+    
     if (isRetryable) {
-      console.warn(`Rate limit/timeout. Retrying in ${delay}ms... (${retries} left)`);
+      console.warn(`⚠️  RPC Error: ${e.message?.slice(0, 100)}...`);
+      console.warn(`   Retrying in ${delay}ms... (${retries} left)`);
       await new Promise(r => setTimeout(r, delay));
       return withRetry(fn, retries - 1, delay * 2);
     }
     throw e;
   }
+}
+
+function loadState(): State {
+  if (fs.existsSync(STATE_FILE)) {
+    console.log(`📂 Loading progress from ${STATE_FILE}...`);
+    const raw = fs.readFileSync(STATE_FILE, 'utf-8');
+    return JSON.parse(raw);
+  }
+  return { earnedMap: {}, distributors: {} };
+}
+
+function saveState(state: State) {
+  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
 }
 
 async function calculateEarnedMoons() {
@@ -68,7 +98,8 @@ async function calculateEarnedMoons() {
   console.log(`  - Alchemy: ${process.env.ALCHEMY_URL_NOVA ? 'Yes' : 'No'}`);
   console.log('');
 
-  const earnedMap = new Map<string, number>(); // address -> earned amount
+  const state = loadState();
+  const earnedMap = new Map<string, number>(Object.entries(state.earnedMap));
   let totalTransfers = 0;
 
   const currentBlock = await client.getBlockNumber();
@@ -77,8 +108,12 @@ async function calculateEarnedMoons() {
   for (const distributor of DISTRIBUTORS) {
     console.log(`📡 Scanning transfers FROM ${distributor}...`);
     
-    let fromBlock = 0n;
-    let chunkSize = 50000n;
+    // Resume from last block or start at 0
+    let fromBlock = state.distributors[distributor] 
+      ? BigInt(state.distributors[distributor].lastBlock) + 1n 
+      : 0n;
+      
+    let chunkSize = 2000n; // Start with a safer chunk size
     
     while (fromBlock < currentBlock) {
       const toBlock = fromBlock + chunkSize > currentBlock ? currentBlock : fromBlock + chunkSize;
@@ -98,6 +133,38 @@ async function calculateEarnedMoons() {
           
           // Skip transfers TO the distributor itself (intermediate step for mod distributions)
           if (to === '0xda9338361d1cfab5813a92697c3f0c0c42368fb3') continue;
+
+          if (to && value > 0) {
+            const current = earnedMap.get(to) || 0;
+            earnedMap.set(to, current + value);
+            totalTransfers++;
+          }
+        }
+
+        // Update state
+        state.distributors[distributor] = { lastBlock: toBlock.toString() };
+        state.earnedMap = Object.fromEntries(earnedMap);
+        saveState(state);
+
+        process.stdout.write(`\r   Block ${toBlock}/${currentBlock} | Found ${logs.length} transfers | Total: ${totalTransfers}`);
+        
+        fromBlock = toBlock + 1n;
+
+      } catch (e: any) {
+        console.error(`\n❌ Error fetching logs: ${e.message?.slice(0, 100)}`);
+        
+        // Dynamic chunk sizing
+        if (chunkSize > 100n) {
+          chunkSize = chunkSize / 2n;
+          console.log(`   📉 Reducing chunk size to ${chunkSize} and retrying...`);
+        } else {
+          console.error('   ❌ Chunk size too small, aborting.');
+          throw e;
+        }
+      }
+    }
+    console.log('\n   ✅ Distributor scan complete.\n');
+  }
           
           if (to && value > 0) {
             const current = earnedMap.get(to) || 0;
