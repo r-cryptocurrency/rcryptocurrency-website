@@ -264,9 +264,9 @@ pm2 logs --lines 50
 | Burn Address | `0x000000000000000000000000000000000000dEaD` |
 
 ### Moon Rounds
-- **Round 51**: Started December 9, 2025
+- **Round 70**: Started December 9, 2025
 - **Cycle**: 28 days per round
-- Calculation: `Round = 51 + floor((now - Dec 9 2025) / 28 days)`
+- Calculation: `Round = 70 + floor((now - Dec 9 2025) / 28 days)`
 
 ---
 
@@ -338,12 +338,14 @@ pm2 set pm2-logrotate:compress true
 ## 📋 Maintenance Schedule
 
 ### Daily
-- `pm2 status` - Verify services running
+- `pm2 status` - Verify all services running (web, ledger, monitor, oracle, scraper)
 - Check Telegram for burn/swap notifications
 
 ### Weekly
 - `pnpm --filter @rcryptocurrency/ledger run health-check`
-- `pnpm --filter @rcryptocurrency/ledger run refresh-balances`
+
+### As Needed (Recovery Only)
+- `pnpm --filter @rcryptocurrency/ledger run refresh-balances` - Only if ledger was down and missed events
 
 ### After New CSV Release
 1. Place new `MoonDistributions.csv` in project root

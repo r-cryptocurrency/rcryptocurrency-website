@@ -102,6 +102,21 @@ export default async function StatsPage({ searchParams }: { searchParams: { rang
 
           </div>
 
+          {/* Karma Leaderboard Link */}
+          <Link 
+            href="/leaderboard"
+            className="flex items-center gap-4 bg-white/80 dark:bg-black/20 backdrop-blur-sm rounded-xl shadow-lg px-6 py-4 border border-orange-100 dark:border-white/10 hover:border-rcc-orange transition-colors group mb-12"
+          >
+            <span className="text-4xl">🏆</span>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-rcc-orange transition-colors m-0">Karma Leaderboard</h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400 m-0">Track karma earned in 28-day rounds</p>
+            </div>
+            <svg className="w-6 h-6 text-slate-400 group-hover:text-rcc-orange transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Latest Posts</h2>
           <div className="bg-white/80 dark:bg-black/20 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden border border-orange-100 dark:border-white/10">
             <div className="overflow-x-auto">
