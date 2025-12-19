@@ -27,9 +27,10 @@ const arbitrumNova = {
 const client = createPublicClient({
   chain: arbitrumNova,
   transport: fallback([
-    http(process.env.QUICKNODE_URL_NOVA, { timeout: 60_000 }),
-    http(process.env.ALCHEMY_URL_NOVA, { timeout: 60_000 }),
-    http("https://nova.arbitrum.io/rpc", { timeout: 60_000 })
+    // QuickNode first (fast, high limits)
+    ...(process.env.QUICKNODE_URL_NOVA ? [http(process.env.QUICKNODE_URL_NOVA, { timeout: 60_000 })] : []),
+    // Free public RPC as fallback (no rate limits on block range, just slower)
+    http("https://nova.arbitrum.io/rpc", { timeout: 60_000 }),
   ])
 });
 
@@ -94,10 +95,10 @@ async function calculateEarnedMoons() {
   console.log('This scans ALL transfers from genesis and distributor addresses.');
   console.log('This will take a LONG time (hours) - use QuickNode credits!\n');
   console.log('RPCs configured:');
-  console.log(`  - QuickNode: ${process.env.QUICKNODE_URL_NOVA ? 'Yes' : 'No'}`);
-  console.log(`  - Alchemy: ${process.env.ALCHEMY_URL_NOVA ? 'Yes' : 'No'}`);
-  console.log('');
-
+  console.log(`  - Free Public RPC: Yes (primary)`);
+  console.log(`  - QuickNode: ${process.env.QUICKNODE_URL_NOVA ? 'Yes (fallback)' : 'No'}`);
+  console.log(`  - QuickNode: ${process.env.QUICKNODE_URL_NOVA ? 'Yes (primary)' : 'No'}`);
+  console.log(`  - Free Public RPC: Yes (fallback)
   const state = loadState();
   const earnedMap = new Map<string, number>(Object.entries(state.earnedMap));
   let totalTransfers = 0;
