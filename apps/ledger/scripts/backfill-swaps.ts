@@ -55,6 +55,24 @@ async function getBlockTimestamp(client: any, blockNumber: bigint): Promise<Date
   }
 }
 
+async function getBlockNumberWithRetry(client: any, maxRetries = 10): Promise<bigint> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await client.getBlockNumber();
+    } catch (error: any) {
+      const msg = error.message || '';
+      if (msg.includes('429') || msg.includes('rate limit') || msg.includes('Too Many')) {
+        const waitTime = Math.pow(2, attempt) * 5000; // 5s, 10s, 20s, 40s...
+        console.log(`Rate limited on getBlockNumber. Waiting ${waitTime/1000}s... (${attempt + 1}/${maxRetries})`);
+        await sleep(waitTime);
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error('Failed to get block number after retries');
+}
+
 async function fetchLogsWithRetry(
   client: any,
   address: string,
@@ -105,7 +123,7 @@ async function fetchLogsWithRetry(
   throw new Error('MAX_RETRIES_EXCEEDED');
 }
 
-async function scanPool(pool: PoolConfig) {
+async function scanPool(pool: PoolConfig): Promise<boolean> {
   console.log(`\n=== Scanning ${pool.name} on ${pool.chain} ===`);
   console.log(`Pool: ${pool.address}`);
   console.log(`RPC: ${pool.rpcUrl.includes('quiknode') ? 'QuickNode' : pool.rpcUrl.includes('alchemy') ? 'Alchemy' : 'Public'}`);
@@ -118,10 +136,10 @@ async function scanPool(pool: PoolConfig) {
 
   let currentBlock: bigint;
   try {
-    currentBlock = await client.getBlockNumber();
+    currentBlock = await getBlockNumberWithRetry(client);
   } catch (e: any) {
     console.error(`Failed to get block number: ${e.message}`);
-    return;
+    return false;
   }
 
   const lastProcessedBlock = await getLastSwapBlock(pool.name, pool.chain);
@@ -254,20 +272,21 @@ async function scanPool(pool: PoolConfig) {
       
       if (error.message === 'DAILY_LIMIT') {
         console.error('\n   Daily limit reached. Please try again tomorrow or use a different RPC.');
-        return;
+        return false;
       }
       
       if (error.message === 'MAX_RETRIES_EXCEEDED') {
         console.error('\n   Max retries exceeded. Stopping to preserve progress.');
-        return;
+        return false;
       }
       
       console.error(`\n   Unexpected error: ${error.message}`);
-      return;
+      return false;
     }
   }
 
   console.log(`\n✅ Finished ${pool.name}. Found ${totalSwaps} new swaps.`);
+  return true;
 }
 
 async function main() {
@@ -321,11 +340,29 @@ async function main() {
     },
   ];
 
+  let successCount = 0;
+  let failCount = 0;
+
   for (const pool of pools) {
-    await scanPool(pool);
+    const success = await scanPool(pool);
+    if (success) {
+      successCount++;
+    } else {
+      failCount++;
+    }
+    // Wait between pools to avoid rate limits
+    await sleep(5000);
   }
 
-  console.log('\n=== BACKFILL COMPLETE ===');
+  console.log('\n=== BACKFILL SUMMARY ===');
+  console.log(`Successful: ${successCount}/${pools.length}`);
+  if (failCount > 0) {
+    console.log(`Failed: ${failCount}/${pools.length}`);
+    console.log('\n❌ BACKFILL INCOMPLETE - Some pools failed. Check errors above and retry.');
+    process.exit(1);
+  } else {
+    console.log('\n✅ BACKFILL COMPLETE');
+  }
 }
 
 main()
