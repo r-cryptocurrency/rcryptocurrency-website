@@ -74,6 +74,7 @@ async function getBlockTimestamp(client: any, blockNumber: bigint): Promise<Date
 }
 
 // Try to fetch logs with a specific provider, returns null on failure
+// Sets provider.client to undefined if rate limited to skip it for future requests
 async function tryGetLogs(
   provider: RpcProvider,
   address: string,
@@ -93,12 +94,42 @@ async function tryGetLogs(
     return logs;
   } catch (error: any) {
     const msg = error.message || '';
-    // Don't log for expected block range errors
+    
+    // If rate limited or daily limit hit, disable this provider
+    if (msg.includes('429') || msg.includes('daily request limit') || msg.includes('rate limit')) {
+      console.log(`\n   [${provider.name}] Rate limited - disabling for this session`);
+      provider.client = undefined;
+      return null;
+    }
+    
+    // Don't log for expected block range errors (Alchemy 10-block limit)
     if (!msg.includes('block range') && !msg.includes('10 block')) {
       console.log(`\n   [${provider.name}] Error: ${msg.substring(0, 100)}`);
     }
     return null;
   }
+}
+
+// Try to get block number from any working provider
+async function getBlockNumberFromAny(providers: RpcProvider[]): Promise<{ blockNumber: bigint; workingClient: any } | null> {
+  for (const provider of providers) {
+    if (!provider.client) continue;
+    try {
+      const blockNumber = await provider.client.getBlockNumber();
+      console.log(`   Using ${provider.name} for block queries`);
+      return { blockNumber, workingClient: provider.client };
+    } catch (e: any) {
+      const msg = e.message || '';
+      // If rate limited, disable provider for this session
+      if (msg.includes('429') || msg.includes('daily request limit') || msg.includes('rate limit')) {
+        console.log(`   ${provider.name} rate limited - disabling`);
+        provider.client = undefined;
+      } else {
+        console.log(`   ${provider.name} unavailable: ${msg.substring(0, 60)}`);
+      }
+    }
+  }
+  return null;
 }
 
 async function scanPool(pool: PoolConfig) {
@@ -107,14 +138,14 @@ async function scanPool(pool: PoolConfig) {
   console.log(`Type: ${pool.type}`);
   console.log(`Providers: ${pool.providers.filter(p => p.client).map(p => `${p.name}(${p.maxBlockRange})`).join(', ')}`);
 
-  // Use the first available client for block number
-  const primaryClient = pool.providers.find(p => p.client)?.client;
-  if (!primaryClient) {
+  // Find a working provider for block queries
+  const result = await getBlockNumberFromAny(pool.providers);
+  if (!result) {
     console.error('No RPC providers available!');
     return;
   }
 
-  const currentBlock = await primaryClient.getBlockNumber();
+  const { blockNumber: currentBlock, workingClient: primaryClient } = result;
   const lastProcessedBlock = await getLastSwapBlock(pool.name, pool.chain);
   const startBlock = lastProcessedBlock > 0n ? lastProcessedBlock + 1n : 0n;
 
