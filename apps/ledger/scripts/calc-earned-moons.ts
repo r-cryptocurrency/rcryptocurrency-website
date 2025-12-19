@@ -27,9 +27,7 @@ const arbitrumNova = {
 const client = createPublicClient({
   chain: arbitrumNova,
   transport: fallback([
-    // QuickNode first (fast, high limits)
-    ...(process.env.QUICKNODE_URL_NOVA ? [http(process.env.QUICKNODE_URL_NOVA, { timeout: 60_000 })] : []),
-    // Free public RPC as fallback (no rate limits on block range, just slower)
+    // Free public RPC first - QuickNode free tier has 5-block limit which is useless for historical scans
     http("https://nova.arbitrum.io/rpc", { timeout: 60_000 }),
   ])
 });
@@ -100,8 +98,7 @@ async function calculateEarnedMoons() {
   console.log('This scans ALL transfers from genesis and distributor addresses.');
   console.log('This will take a LONG time (hours) - use QuickNode credits!\n');
   console.log('RPCs configured:');
-  console.log('  - QuickNode: ' + (process.env.QUICKNODE_URL_NOVA ? 'Yes (primary)' : 'No'));
-  console.log('  - Free Public RPC: Yes (fallback)');
+  console.log('  - Free Public RPC: Yes (QuickNode free tier has 5-block limit - useless for backfills)');
   console.log('');
 
   const state = loadState();

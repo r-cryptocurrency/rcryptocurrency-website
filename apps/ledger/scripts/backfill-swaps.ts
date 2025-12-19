@@ -213,8 +213,10 @@ async function main() {
   console.log('This script scans all DEX pools for historical swap events.');
   console.log('It will resume from where it left off.\n');
 
-  const novaRpc = process.env.QUICKNODE_URL_NOVA || 'https://nova.arbitrum.io/rpc';
-  const oneRpc = process.env.QUICKNODE_URL_ONE || 'https://arb1.arbitrum.io/rpc';
+  // Use FREE public RPCs for historical backfills
+  // QuickNode free tier has 5-block limit for eth_getLogs which is useless for backfills
+  const novaRpc = 'https://nova.arbitrum.io/rpc';
+  const oneRpc = 'https://arb1.arbitrum.io/rpc';
 
   const pools: PoolConfig[] = [
     {

@@ -168,10 +168,12 @@ async function main() {
   console.log('This script scans all chains for historical burns to 0xdead.');
   console.log('It will resume from where it left off.\n');
 
-  // Use QuickNode RPCs for faster scanning (using up credits as requested)
-  const novaRpc = process.env.QUICKNODE_URL_NOVA || 'https://nova.arbitrum.io/rpc';
-  const oneRpc = process.env.QUICKNODE_URL_ONE || 'https://arb1.arbitrum.io/rpc';
-  const ethRpc = process.env.QUICKNODE_URL_ETH || 'https://eth.llamarpc.com';
+  // Use FREE public RPCs for historical backfills
+  // QuickNode free tier has 5-block limit for eth_getLogs which is useless for backfills
+  // Save QuickNode credits for real-time monitoring instead
+  const novaRpc = 'https://nova.arbitrum.io/rpc';
+  const oneRpc = 'https://arb1.arbitrum.io/rpc';
+  const ethRpc = 'https://eth.llamarpc.com';
 
   // Arbitrum Nova
   await scanChain(
