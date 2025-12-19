@@ -1,28 +1,10 @@
 import { prisma } from '@rcryptocurrency/database';
-import { Card, Title, Text, BarList, Flex, Grid, Metric, Table, TableHead, TableRow, TableHeaderCell, TableBody, TableCell, BadgeDelta } from "@tremor/react";
 import Background from '../../components/Background';
 import SentimentChart from '../stats/SentimentChart';
 import SentimentInfo from './SentimentInfo';
 import Link from 'next/link';
 
 export const revalidate = 60; // Revalidate every minute
-
-// Calculate the current moon round dynamically
-function getCurrentMoonRound(): { roundNumber: number; startDate: Date; endDate: Date } {
-  // Round 51 started Dec 9, 2025
-  const ROUND_51_START = new Date('2025-12-09T00:00:00Z');
-  const DAYS_PER_ROUND = 28;
-  
-  const now = new Date();
-  const daysSinceRound51 = Math.floor((now.getTime() - ROUND_51_START.getTime()) / (1000 * 60 * 60 * 24));
-  const roundsSinceR51 = Math.max(0, Math.floor(daysSinceRound51 / DAYS_PER_ROUND));
-  
-  const currentRound = 51 + roundsSinceR51;
-  const roundStartDate = new Date(ROUND_51_START.getTime() + (roundsSinceR51 * DAYS_PER_ROUND * 24 * 60 * 60 * 1000));
-  const roundEndDate = new Date(roundStartDate.getTime() + (DAYS_PER_ROUND * 24 * 60 * 60 * 1000) - 1);
-  
-  return { roundNumber: currentRound, startDate: roundStartDate, endDate: roundEndDate };
-}
 
 export default async function ScraperPage({ searchParams }: { searchParams: { range?: string } }) {
   const range = searchParams.range || '24h';
@@ -36,42 +18,6 @@ export default async function ScraperPage({ searchParams }: { searchParams: { ra
     // Default 24h
     startDate.setHours(startDate.getHours() - 24);
   }
-
-  // --- Dynamic Moon Round ---
-  const { roundNumber, startDate: roundStart, endDate: roundEnd } = getCurrentMoonRound();
-
-  // 1. Get Post Scores
-  const postScores = await prisma.redditPost.groupBy({
-    by: ['author'],
-    _sum: { score: true },
-    where: { createdUtc: { gte: roundStart, lte: roundEnd } }
-  });
-
-  // 2. Get Comment Scores
-  const commentScores = await prisma.redditComment.groupBy({
-    by: ['author'],
-    _sum: { score: true },
-    where: { createdUtc: { gte: roundStart, lte: roundEnd } }
-  });
-
-  // 3. Merge Scores
-  const karmaMap = new Map<string, number>();
-
-  postScores.forEach(p => {
-    const current = karmaMap.get(p.author) || 0;
-    karmaMap.set(p.author, current + (p._sum.score || 0));
-  });
-
-  commentScores.forEach(c => {
-    const current = karmaMap.get(c.author) || 0;
-    karmaMap.set(c.author, current + (c._sum.score || 0));
-  });
-
-  // 4. Sort and Top 20
-  const leaderboard = Array.from(karmaMap.entries())
-    .map(([author, score]) => ({ author, score }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 20);
 
   const posts = await prisma.redditPost.findMany({
     orderBy: { createdUtc: 'desc' },
@@ -155,43 +101,21 @@ export default async function ScraperPage({ searchParams }: { searchParams: { ra
 
           </div>
 
-          {/* Karma Leaderboard */}
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Karma Leaderboard (Round {roundNumber})</h2>
-          <div className="bg-white/80 dark:bg-black/20 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden border border-orange-100 dark:border-white/10 mb-12">
-            <div className="bg-orange-100/50 dark:bg-white/5 px-6 py-4 border-b border-orange-100 dark:border-white/10 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white m-0">Top Earners ({roundStart.toLocaleDateString()} - {roundEnd.toLocaleDateString()})</h3>
-              <span className="text-xs text-slate-500 dark:text-slate-400">Based on scraped posts/comments</span>
-            </div>
-            <div className="p-6">
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableHeaderCell>Rank</TableHeaderCell>
-                    <TableHeaderCell>User</TableHeaderCell>
-                    <TableHeaderCell className="text-right">Est. Karma</TableHeaderCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {leaderboard.map((user, index) => (
-                    <TableRow key={user.author}>
-                      <TableCell>
-                        <BadgeDelta deltaType={index < 3 ? "increase" : "unchanged"} isIncreasePositive={true} size="xs">
-                          #{index + 1}
-                        </BadgeDelta>
-                      </TableCell>
-                      <TableCell>
-                        <a href={`https://reddit.com/u/${user.author}`} target="_blank" rel="noreferrer" className="text-slate-700 dark:text-slate-300 hover:text-rcc-orange font-medium">
-                          u/{user.author}
-                        </a>
-                      </TableCell>
-                      <TableCell className="text-right font-mono font-bold text-slate-800 dark:text-white">
-                        {user.score.toLocaleString()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+          {/* Karma Leaderboard Link */}
+          <div className="mb-12">
+            <Link 
+              href="/leaderboard"
+              className="inline-flex items-center gap-3 bg-white/80 dark:bg-black/20 backdrop-blur-sm rounded-xl shadow-lg px-6 py-4 border border-orange-100 dark:border-white/10 hover:border-rcc-orange transition-colors group"
+            >
+              <span className="text-3xl">🏆</span>
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-rcc-orange transition-colors m-0">Karma Leaderboard</h2>
+                <p className="text-sm text-slate-600 dark:text-slate-400 m-0">Track karma earned in 28-day rounds</p>
+              </div>
+              <svg className="w-6 h-6 text-slate-400 group-hover:text-rcc-orange transition-colors ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
           </div>
 
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Latest Posts</h2>
