@@ -45,6 +45,9 @@ const DISTRIBUTORS = [
   '0xda9338361d1cfab5813a92697c3f0c0c42368fb3'  // TheMoonDistributor
 ];
 
+// MOON on Nova was deployed around block 1, but we start from 1 to avoid issues with genesis block
+const START_BLOCK = 1n;
+
 interface DistributorState {
   lastBlock: string;
 }
@@ -54,7 +57,7 @@ interface State {
   distributors: Record<string, DistributorState>;
 }
 
-async function withRetry<T>(fn: () => Promise<T>, retries = 5, delay = 2000): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, retries = 5, delay = 2000, context = ''): Promise<T> {
   try {
     return await fn();
   } catch (e: any) {
@@ -64,14 +67,17 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 5, delay = 2000): Pr
                         msg.includes('timeout') ||
                         msg.includes('Too Many Requests') ||
                         msg.includes('limit') ||
-                        msg.includes('range');
+                        msg.includes('range') ||
+                        msg.includes('Missing or invalid');
     
     if (isRetryable) {
-      console.warn('RPC Error: ' + msg.slice(0, 100) + '...');
+      console.warn('RPC Error (' + context + '): ' + msg.slice(0, 100) + '...');
       console.warn('Retrying in ' + delay + 'ms... (' + retries + ' left)');
       await new Promise(r => setTimeout(r, delay));
-      return withRetry(fn, retries - 1, delay * 2);
+      return withRetry(fn, retries - 1, delay * 2, context);
     }
+    // Log full error for non-retryable errors
+    console.error('Non-retryable error (' + context + '):', msg);
     throw e;
   }
 }
@@ -110,7 +116,7 @@ async function calculateEarnedMoons() {
     
     let fromBlock = state.distributors[distributor] 
       ? BigInt(state.distributors[distributor].lastBlock) + 1n 
-      : 0n;
+      : START_BLOCK;
       
     let chunkSize = 2000n;
     
@@ -124,7 +130,7 @@ async function calculateEarnedMoons() {
           args: { from: distributor as `0x${string}` },
           fromBlock,
           toBlock
-        }));
+        }), 3, 2000, 'getLogs ' + fromBlock + '-' + toBlock);
 
         for (const log of logs) {
           const to = log.args.to?.toLowerCase();
