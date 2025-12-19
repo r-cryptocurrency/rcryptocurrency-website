@@ -165,39 +165,6 @@ async function calculateEarnedMoons() {
     }
     console.log('\n   ✅ Distributor scan complete.\n');
   }
-          
-          if (to && value > 0) {
-            const current = earnedMap.get(to) || 0;
-            earnedMap.set(to, current + value);
-          }
-        }
-        
-        totalTransfers += logs.length;
-        const progress = ((Number(fromBlock) / Number(currentBlock)) * 100).toFixed(1);
-        process.stdout.write(`\r   [${progress}%] Scanned blocks ${fromBlock}-${toBlock}, found ${logs.length} transfers (Total: ${totalTransfers})`);
-        
-        fromBlock = toBlock + 1n;
-        
-        // Adaptive chunk sizing - increase if successful
-        if (chunkSize < 100000n) chunkSize += 5000n;
-        
-        await new Promise(r => setTimeout(r, 100));
-
-      } catch (e: any) {
-        const msg = e?.message || "";
-        if (msg.includes("exceeds limit") || msg.includes("timeout") || msg.includes("limit exceeded")) {
-          chunkSize = chunkSize / 2n;
-          if (chunkSize < 1000n) chunkSize = 1000n;
-          console.log(`\n   ⚠️ Reducing chunk size to ${chunkSize}`);
-          await new Promise(r => setTimeout(r, 2000));
-        } else {
-          console.error(`\n   ❌ Error at block ${fromBlock}:`, msg);
-          await new Promise(r => setTimeout(r, 5000));
-        }
-      }
-    }
-    console.log('\n');
-  }
 
   console.log(`\n✅ Found ${earnedMap.size} addresses with earned moons`);
   console.log(`   Total transfers processed: ${totalTransfers}`);
