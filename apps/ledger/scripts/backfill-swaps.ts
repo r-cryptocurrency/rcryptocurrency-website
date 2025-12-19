@@ -292,20 +292,22 @@ async function scanPool(pool: PoolConfig): Promise<boolean> {
 async function main() {
   console.log('=== BACKFILL SWAPS ===\n');
 
-  // Use Alchemy - it has 10 block limit but won't rate limit you
-  const alchemyNova = process.env.ALCHEMY_URL_NOVA;
-  const alchemyOne = process.env.ALCHEMY_URL_ONE;
-  
-  // Fallback to public RPCs
-  const novaRpc = alchemyNova || 'https://nova.arbitrum.io/rpc';
-  const oneRpc = alchemyOne || 'https://arb1.arbitrum.io/rpc';
-  
-  // Alchemy free tier = 10 block limit, Public = 2000 block limit
-  const novaChunk = alchemyNova ? 10 : 2000;
-  const oneChunk = alchemyOne ? 10 : 2000;
+  // Use FREE public RPCs only - they have 2000 block limit but are reliable
+  const novaRpc = 'https://nova.arbitrum.io/rpc';
+  const oneRpc = 'https://arb1.arbitrum.io/rpc';
 
-  console.log(`Nova RPC: ${alchemyNova ? 'Alchemy (10 block chunks)' : 'Public (2000 block chunks)'}`);
-  console.log(`One RPC: ${alchemyOne ? 'Alchemy (10 block chunks)' : 'Public (2000 block chunks)'}`);
+  console.log('Using public RPCs with 2000 block chunks');
+  console.log('This is slower but reliable and free.\n');
+
+  // Check existing progress first
+  console.log('Checking existing progress in database...');
+  const novaProgress = await getLastSwapBlock('SushiSwap V2 (Nova)', 'Arbitrum Nova');
+  const camelotProgress = await getLastSwapBlock('Camelot V3', 'Arbitrum One');
+  const uniswapProgress = await getLastSwapBlock('Uniswap V3', 'Arbitrum One');
+  
+  console.log(`  SushiSwap V2 (Nova): last block ${novaProgress > 0n ? novaProgress.toString() : 'none (starting fresh)'}`);
+  console.log(`  Camelot V3: last block ${camelotProgress > 0n ? camelotProgress.toString() : 'none (starting fresh)'}`);
+  console.log(`  Uniswap V3: last block ${uniswapProgress > 0n ? uniswapProgress.toString() : 'none (starting fresh)'}`);
 
   const pools: PoolConfig[] = [
     {
@@ -316,7 +318,7 @@ async function main() {
       name: 'SushiSwap V2 (Nova)',
       moonIsToken0: true,
       rpcUrl: novaRpc,
-      chunkSize: novaChunk,
+      chunkSize: 2000,
     },
     {
       chain: 'Arbitrum One',
@@ -326,7 +328,7 @@ async function main() {
       name: 'Camelot V3',
       moonIsToken0: true,
       rpcUrl: oneRpc,
-      chunkSize: oneChunk,
+      chunkSize: 2000,
     },
     {
       chain: 'Arbitrum One',
@@ -336,7 +338,7 @@ async function main() {
       name: 'Uniswap V3',
       moonIsToken0: true,
       rpcUrl: oneRpc,
-      chunkSize: oneChunk,
+      chunkSize: 2000,
     },
   ];
 
