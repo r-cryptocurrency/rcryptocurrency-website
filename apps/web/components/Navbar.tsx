@@ -68,6 +68,7 @@ export default function Navbar() {
           <NavLink href="/" label="Home" emoji="🏠" onClick={() => setIsOpen(false)} />
           <NavLink href="/#timeline" label="Timeline" emoji="⏳" onClick={() => setIsOpen(false)} />
           <NavLink href="/stats" label="Stats" emoji="📊" onClick={() => setIsOpen(false)} />
+          <NavLink href="/leaderboard" label="Leaderboard" emoji="🏆" onClick={() => setIsOpen(false)} />
           <NavLink href="/richlist" label="Richlist" emoji="💰" onClick={() => setIsOpen(false)} />
           <NavLink href="/burns" label="Burns" emoji="🔥" onClick={() => setIsOpen(false)} />
           <NavLink href="/calendar" label="Calendar" emoji="📅" onClick={() => setIsOpen(false)} />

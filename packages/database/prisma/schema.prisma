@@ -159,3 +159,33 @@ model Swap {
   @@index([maker])
   @@index([dex])
 }
+
+// Karma tracking for 28-day rounds
+model KarmaRound {
+  id          Int           @id // Round number (e.g., 70, 71, etc.)
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  entries     KarmaEntry[]
+
+  @@index([isActive])
+  @@index([startDate])
+}
+
+model KarmaEntry {
+  id          Int         @id @default(autoincrement())
+  roundId     Int
+  username    String
+  postKarma   Int         @default(0)
+  commentKarma Int        @default(0)
+  totalKarma  Int         @default(0)
+  postCount   Int         @default(0)
+  commentCount Int        @default(0)
+  updatedAt   DateTime    @updatedAt
+  round       KarmaRound  @relation(fields: [roundId], references: [id])
+
+  @@unique([roundId, username])
+  @@index([roundId, totalKarma(sort: Desc)])
+  @@index([username])
+}

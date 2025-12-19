@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { prisma } from '@rcryptocurrency/database';
 import { analyzeSentiment, findProjectMentions } from './analyzer';
+import { updateKarmaForUser, getOrCreateCurrentRound, getRoundForDate, getRoundDates } from './karma';
 
 const USER_AGENT = 'Reddit-Scraper/1.0 (by /u/TheMoonDistributor)';
 const SUBREDDIT = 'CryptoCurrency';
@@ -82,6 +83,14 @@ export async function runScraper(sortType: 'new' | 'hot' | 'top' = 'new') {
       const mentions = findProjectMentions(post.title + ' ' + (post.selftext || ''));
 
       try {
+        // Check if post already exists to calculate karma delta
+        const existingPost = await prisma.redditPost.findUnique({
+          where: { id: post.id },
+          select: { score: true }
+        });
+        const oldScore = existingPost?.score || 0;
+        const scoreChange = post.score - oldScore;
+
         await upsertWithRetry(() => prisma.redditPost.upsert({
           where: { id: post.id },
           update: {
@@ -108,6 +117,22 @@ export async function runScraper(sortType: 'new' | 'hot' | 'top' = 'new') {
             }
           }
         }));
+
+        // Track karma for current round (only new posts or score changes)
+        const postDate = new Date(post.created_utc * 1000);
+        const currentRound = getRoundForDate(new Date());
+        const postRound = getRoundForDate(postDate);
+        
+        // Only track karma for posts in current round
+        if (postRound === currentRound && post.author && post.author !== '[deleted]') {
+          if (!existingPost) {
+            // New post - record full score
+            await updateKarmaForUser(post.author, post.score, false);
+          } else if (scoreChange !== 0) {
+            // Existing post - record delta
+            await updateKarmaForUser(post.author, scoreChange, false);
+          }
+        }
       } catch (err: any) {
         console.error(`Failed to upsert post ${post.id}:`, err);
         continue; // Skip to next post if this one fails
@@ -127,6 +152,14 @@ export async function runScraper(sortType: 'new' | 'hot' | 'top' = 'new') {
 
           const cSentiment = analyzeSentiment(comment.body);
           const cMentions = findProjectMentions(comment.body);
+
+          // Check if comment exists to calculate karma delta
+          const existingComment = await prisma.redditComment.findUnique({
+            where: { id: comment.id },
+            select: { score: true }
+          });
+          const oldCommentScore = existingComment?.score || 0;
+          const commentScoreChange = comment.score - oldCommentScore;
 
           await upsertWithRetry(() => prisma.redditComment.upsert({
             where: { id: comment.id },
@@ -150,6 +183,21 @@ export async function runScraper(sortType: 'new' | 'hot' | 'top' = 'new') {
               }
             }
           }));
+
+          // Track comment karma for current round
+          const commentDate = new Date(comment.created_utc * 1000);
+          const currentRound = getRoundForDate(new Date());
+          const commentRound = getRoundForDate(commentDate);
+          
+          if (commentRound === currentRound && comment.author && comment.author !== '[deleted]') {
+            if (!existingComment) {
+              // New comment - record full score
+              await updateKarmaForUser(comment.author, comment.score, true);
+            } else if (commentScoreChange !== 0) {
+              // Existing comment - record delta
+              await updateKarmaForUser(comment.author, commentScoreChange, true);
+            }
+          }
           
           await delay(100); // Small delay to ease DB load
         }
