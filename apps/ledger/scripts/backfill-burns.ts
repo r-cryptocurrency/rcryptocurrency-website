@@ -129,6 +129,21 @@ async function scanChain(
             sender: from.toLowerCase(),
           },
         });
+
+        // Update Holder stats
+        await prisma.holder.upsert({
+          where: { address: from.toLowerCase() },
+          create: {
+            address: from.toLowerCase(),
+            hasOutgoing: true,
+            lastTransferAt: timestamp,
+          },
+          update: {
+            hasOutgoing: true,
+            lastTransferAt: timestamp,
+          }
+        });
+
         totalBurns++;
         process.stdout.write(' [Saved]');
       }

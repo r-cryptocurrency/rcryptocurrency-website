@@ -176,6 +176,23 @@ async function scanPool(pool: PoolConfig) {
             maker,
           },
         });
+
+        // Update Holder stats (if maker is a user address)
+        if (maker && maker.startsWith('0x')) {
+          await prisma.holder.upsert({
+            where: { address: maker },
+            create: {
+              address: maker,
+              hasOutgoing: true,
+              lastTransferAt: timestamp,
+            },
+            update: {
+              hasOutgoing: true,
+              lastTransferAt: timestamp,
+            }
+          });
+        }
+
         totalSwaps++;
       }
 

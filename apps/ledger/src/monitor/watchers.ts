@@ -60,6 +60,24 @@ export function setupBurnWatcher(
             console.error('   -> Failed to save burn to DB:', e);
           }
 
+          // Update Holder stats
+          try {
+            await prisma.holder.upsert({
+              where: { address: from.toLowerCase() },
+              create: {
+                address: from.toLowerCase(),
+                hasOutgoing: true,
+                lastTransferAt: new Date(), // Use current time for live events
+              },
+              update: {
+                hasOutgoing: true,
+                lastTransferAt: new Date(),
+              }
+            });
+          } catch (e) {
+            console.error('   -> Failed to update holder stats:', e);
+          }
+
           const fromResolved = await resolveAddress(from);
           const explorerLink = `${explorerBaseUrl}/tx/${hash}`;
           const message = `🔥 *BURN ALERT!* (${monitor.chainName}) 🔥\n\n` +
