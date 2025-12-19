@@ -1,21 +1,11 @@
-import { createPublicClient, http, parseAbiItem, formatUnits } from 'viem';
+import { createPublicClient, http, parseAbiItem } from 'viem';
 import { arbitrum } from 'viem/chains';
 import { prisma } from '@rcryptocurrency/database';
-import { MOON_CONTRACTS, LIQUIDITY_POOLS } from '@rcryptocurrency/chain-data';
+import { LIQUIDITY_POOLS } from '@rcryptocurrency/chain-data';
 import dotenv from 'dotenv';
 import path from 'path';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
-
-// Load RPC URLs from environment
-const QUICKNODE_URL_NOVA = process.env.QUICKNODE_URL_NOVA;
-const QUICKNODE_URL_ONE = process.env.QUICKNODE_URL_ONE;
-const ALCHEMY_URL_NOVA = process.env.ALCHEMY_URL_NOVA;
-const ALCHEMY_URL_ONE = process.env.ALCHEMY_URL_ONE;
-
-console.log('RPC Configuration:');
-console.log(`  Nova: ${QUICKNODE_URL_NOVA ? 'QuickNode ✓' : 'Public only'}, ${ALCHEMY_URL_NOVA ? 'Alchemy ✓' : ''}`);
-console.log(`  One:  ${QUICKNODE_URL_ONE ? 'QuickNode ✓' : 'Public only'}, ${ALCHEMY_URL_ONE ? 'Alchemy ✓' : ''}`);
 
 // Define Arbitrum Nova
 const arbitrumNova = {
@@ -29,24 +19,11 @@ const arbitrumNova = {
   },
 };
 
-// Uniswap V2/SushiSwap V2 Swap event
+// Swap events
 const SWAP_V2_EVENT = parseAbiItem('event Swap(address indexed sender, uint256 amount0In, uint256 amount1In, uint256 amount0Out, uint256 amount1Out, address indexed to)');
-
-// Uniswap V3/Camelot V3 Swap event
 const SWAP_V3_EVENT = parseAbiItem('event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)');
 
-const DELAY_MS = 50; // Fast with dedicated RPC
-
-async function sleep(ms: number): Promise<void> {
-  return new Promise(r => setTimeout(r, ms));
-}
-
-interface RpcProvider {
-  name: string;
-  url: string;
-  maxBlockRange: bigint;
-  client?: any;
-}
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 interface PoolConfig {
   chain: string;
@@ -55,7 +32,8 @@ interface PoolConfig {
   type: 'V2' | 'V3';
   name: string;
   moonIsToken0: boolean;
-  providers: RpcProvider[];
+  rpcUrl: string;
+  chunkSize: number;
 }
 
 // Get the last processed block for a DEX
@@ -69,83 +47,83 @@ async function getLastSwapBlock(dex: string, chain: string): Promise<bigint> {
 }
 
 async function getBlockTimestamp(client: any, blockNumber: bigint): Promise<Date> {
-  const block = await client.getBlock({ blockNumber });
-  return new Date(Number(block.timestamp) * 1000);
+  try {
+    const block = await client.getBlock({ blockNumber });
+    return new Date(Number(block.timestamp) * 1000);
+  } catch {
+    return new Date();
+  }
 }
 
-// Try to fetch logs with a specific provider, returns null on failure
-// Sets provider.client to undefined if rate limited to skip it for future requests
-async function tryGetLogs(
-  provider: RpcProvider,
+async function fetchLogsWithRetry(
+  client: any,
   address: string,
   event: any,
   fromBlock: bigint,
-  toBlock: bigint
-): Promise<any[] | null> {
-  if (!provider.client) return null;
-  
-  try {
-    const logs = await provider.client.getLogs({
-      address: address as `0x${string}`,
-      event,
-      fromBlock,
-      toBlock,
-    });
-    return logs;
-  } catch (error: any) {
-    const msg = error.message || '';
-    
-    // If rate limited or daily limit hit, disable this provider
-    if (msg.includes('429') || msg.includes('daily request limit') || msg.includes('rate limit')) {
-      console.log(`\n   [${provider.name}] Rate limited - disabling for this session`);
-      provider.client = undefined;
-      return null;
-    }
-    
-    // Don't log for expected block range errors (Alchemy 10-block limit)
-    if (!msg.includes('block range') && !msg.includes('10 block')) {
-      console.log(`\n   [${provider.name}] Error: ${msg.substring(0, 100)}`);
-    }
-    return null;
-  }
-}
-
-// Try to get block number from any working provider
-async function getBlockNumberFromAny(providers: RpcProvider[]): Promise<{ blockNumber: bigint; workingClient: any } | null> {
-  for (const provider of providers) {
-    if (!provider.client) continue;
+  toBlock: bigint,
+  maxRetries = 5
+): Promise<any[]> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      const blockNumber = await provider.client.getBlockNumber();
-      console.log(`   Using ${provider.name} for block queries`);
-      return { blockNumber, workingClient: provider.client };
-    } catch (e: any) {
-      const msg = e.message || '';
-      // If rate limited, disable provider for this session
-      if (msg.includes('429') || msg.includes('daily request limit') || msg.includes('rate limit')) {
-        console.log(`   ${provider.name} rate limited - disabling`);
-        provider.client = undefined;
-      } else {
-        console.log(`   ${provider.name} unavailable: ${msg.substring(0, 60)}`);
+      return await client.getLogs({
+        address: address as `0x${string}`,
+        event,
+        fromBlock,
+        toBlock,
+      });
+    } catch (error: any) {
+      const msg = error.message || '';
+      
+      // Rate limit - wait and retry
+      if (msg.includes('429') || msg.includes('rate limit') || msg.includes('Rate Limit')) {
+        const waitTime = Math.pow(2, attempt) * 10000; // 10s, 20s, 40s, 80s, 160s
+        console.log(`\n   Rate limited. Waiting ${waitTime/1000}s before retry ${attempt + 1}/${maxRetries}...`);
+        await sleep(waitTime);
+        continue;
       }
+      
+      // Request too large - this shouldn't happen with proper chunk sizes, but reduce if it does
+      if (msg.includes('413')) {
+        throw new Error('CHUNK_TOO_LARGE');
+      }
+      
+      // Block range error - shouldn't happen
+      if (msg.includes('block range') || msg.includes('10 block')) {
+        throw new Error('CHUNK_TOO_LARGE');
+      }
+      
+      // Daily limit - fatal
+      if (msg.includes('daily request limit')) {
+        throw new Error('DAILY_LIMIT');
+      }
+      
+      // Other error - retry after short delay
+      console.log(`\n   Error: ${msg.substring(0, 80)}. Retry ${attempt + 1}/${maxRetries}...`);
+      await sleep(5000);
     }
   }
-  return null;
+  throw new Error('MAX_RETRIES_EXCEEDED');
 }
 
 async function scanPool(pool: PoolConfig) {
   console.log(`\n=== Scanning ${pool.name} on ${pool.chain} ===`);
-  console.log(`Pool address: ${pool.address}`);
-  console.log(`Type: ${pool.type}`);
-  console.log(`Providers: ${pool.providers.filter(p => p.client).map(p => `${p.name}(${p.maxBlockRange})`).join(', ')}`);
+  console.log(`Pool: ${pool.address}`);
+  console.log(`RPC: ${pool.rpcUrl.includes('quiknode') ? 'QuickNode' : pool.rpcUrl.includes('alchemy') ? 'Alchemy' : 'Public'}`);
+  console.log(`Chunk size: ${pool.chunkSize} blocks`);
 
-  // Find a working provider for block queries
-  const result = await getBlockNumberFromAny(pool.providers);
-  if (!result) {
-    console.error('No RPC providers available!');
+  const client = createPublicClient({
+    chain: pool.chainObj,
+    transport: http(pool.rpcUrl, { timeout: 120_000 }),
+  });
+
+  let currentBlock: bigint;
+  try {
+    currentBlock = await client.getBlockNumber();
+  } catch (e: any) {
+    console.error(`Failed to get block number: ${e.message}`);
     return;
   }
 
-  const { blockNumber: currentBlock, workingClient: primaryClient } = result;
   const lastProcessedBlock = await getLastSwapBlock(pool.name, pool.chain);
   const startBlock = lastProcessedBlock > 0n ? lastProcessedBlock + 1n : 0n;
 
@@ -161,167 +139,154 @@ async function scanPool(pool: PoolConfig) {
   const event = pool.type === 'V2' ? SWAP_V2_EVENT : SWAP_V3_EVENT;
   let fromBlock = startBlock;
   let totalSwaps = 0;
-  let consecutiveErrors = 0;
+  let chunkSize = BigInt(pool.chunkSize);
 
   while (fromBlock < currentBlock) {
-    let logs: any[] | null = null;
-    let usedProvider: RpcProvider | null = null;
+    const toBlock = fromBlock + chunkSize > currentBlock ? currentBlock : fromBlock + chunkSize;
+    
+    const progress = ((Number(fromBlock - startBlock) / Number(currentBlock - startBlock)) * 100).toFixed(1);
+    process.stdout.write(`\r[${progress}%] Blocks ${fromBlock} to ${toBlock}...`);
 
-    // Try each provider in order with their respective block ranges
-    for (const provider of pool.providers) {
-      if (!provider.client) continue;
+    try {
+      const logs = await fetchLogsWithRetry(client, pool.address, event, fromBlock, toBlock);
 
-      const chunkSize = provider.maxBlockRange;
-      const toBlock = fromBlock + chunkSize > currentBlock ? currentBlock : fromBlock + chunkSize;
-      
-      const progress = ((Number(fromBlock - startBlock) / Number(currentBlock - startBlock)) * 100).toFixed(1);
-      process.stdout.write(`\r[${progress}%] ${provider.name}: blocks ${fromBlock} to ${toBlock}...    `);
+      if (logs.length > 0) {
+        console.log(` Found ${logs.length} swaps`);
+      }
 
-      logs = await tryGetLogs(provider, pool.address, event, fromBlock, toBlock);
-      
-      if (logs !== null) {
-        usedProvider = provider;
-        // Successfully got logs, process them
-        if (logs.length > 0) {
-          console.log(`\n   Found ${logs.length} swap events.`);
-        }
+      for (const log of logs) {
+        const txHash = log.transactionHash;
+        const blockNumber = log.blockNumber;
 
-        for (const log of logs) {
-          const txHash = log.transactionHash;
-          const blockNumber = log.blockNumber;
+        if (!txHash || !blockNumber) continue;
 
-          if (!txHash || !blockNumber) continue;
+        let moonAmount = 0;
+        let otherAmount = 0;
+        let isBuy = false;
+        let maker = '';
 
-          let moonAmount = 0;
-          let otherAmount = 0;
-          let isBuy = false;
-          let maker = '';
+        if (pool.type === 'V2') {
+          const args = log.args as any;
+          const amount0In = Number(args.amount0In || 0n) / 1e18;
+          const amount1In = Number(args.amount1In || 0n) / 1e18;
+          const amount0Out = Number(args.amount0Out || 0n) / 1e18;
+          const amount1Out = Number(args.amount1Out || 0n) / 1e18;
+          maker = (args.to || args.sender || '').toLowerCase();
 
-          if (pool.type === 'V2') {
-            const args = log.args as any;
-            const amount0In = Number(args.amount0In || 0n) / 1e18;
-            const amount1In = Number(args.amount1In || 0n) / 1e18;
-            const amount0Out = Number(args.amount0Out || 0n) / 1e18;
-            const amount1Out = Number(args.amount1Out || 0n) / 1e18;
-            maker = (args.to || args.sender || '').toLowerCase();
-
-            if (pool.moonIsToken0) {
-              moonAmount = amount0Out > 0 ? amount0Out : amount0In;
-              otherAmount = amount1In > 0 ? amount1In : amount1Out;
-              isBuy = amount0Out > 0;
-            } else {
-              moonAmount = amount1Out > 0 ? amount1Out : amount1In;
-              otherAmount = amount0In > 0 ? amount0In : amount0Out;
-              isBuy = amount1Out > 0;
-            }
+          if (pool.moonIsToken0) {
+            moonAmount = amount0Out > 0 ? amount0Out : amount0In;
+            otherAmount = amount1In > 0 ? amount1In : amount1Out;
+            isBuy = amount0Out > 0;
           } else {
-            const args = log.args as any;
-            const amount0 = Number(args.amount0 || 0n) / 1e18;
-            const amount1 = Number(args.amount1 || 0n) / 1e18;
-            maker = (args.recipient || args.sender || '').toLowerCase();
-
-            if (pool.moonIsToken0) {
-              moonAmount = Math.abs(amount0);
-              otherAmount = Math.abs(amount1);
-              isBuy = amount0 < 0;
-            } else {
-              moonAmount = Math.abs(amount1);
-              otherAmount = Math.abs(amount0);
-              isBuy = amount1 < 0;
-            }
+            moonAmount = amount1Out > 0 ? amount1Out : amount1In;
+            otherAmount = amount0In > 0 ? amount0In : amount0Out;
+            isBuy = amount1Out > 0;
           }
+        } else {
+          const args = log.args as any;
+          const amount0 = Number(args.amount0 || 0n) / 1e18;
+          const amount1 = Number(args.amount1 || 0n) / 1e18;
+          maker = (args.recipient || args.sender || '').toLowerCase();
 
-          if (moonAmount === 0) continue;
-
-          const timestamp = await getBlockTimestamp(primaryClient, blockNumber);
-
-          await prisma.swap.upsert({
-            where: { txHash },
-            update: {},
-            create: {
-              txHash,
-              blockNumber: Number(blockNumber),
-              timestamp,
-              chain: pool.chain,
-              dex: pool.name,
-              amountIn: isBuy ? otherAmount : moonAmount,
-              amountOut: isBuy ? moonAmount : otherAmount,
-              tokenIn: isBuy ? 'ETH' : 'MOON',
-              tokenOut: isBuy ? 'MOON' : 'ETH',
-              usdValue: null,
-              maker,
-            },
-          });
-
-          if (maker && maker.startsWith('0x')) {
-            await prisma.holder.upsert({
-              where: { address: maker },
-              create: {
-                address: maker,
-                hasOutgoing: true,
-                lastTransferAt: timestamp,
-              },
-              update: {
-                hasOutgoing: true,
-                lastTransferAt: timestamp,
-              }
-            });
+          if (pool.moonIsToken0) {
+            moonAmount = Math.abs(amount0);
+            otherAmount = Math.abs(amount1);
+            isBuy = amount0 < 0;
+          } else {
+            moonAmount = Math.abs(amount1);
+            otherAmount = Math.abs(amount0);
+            isBuy = amount1 < 0;
           }
-
-          totalSwaps++;
         }
 
-        consecutiveErrors = 0;
-        fromBlock = toBlock + 1n;
-        break; // Successfully processed, move to next chunk
-      }
-    }
+        if (moonAmount === 0) continue;
 
-    if (logs === null) {
-      // All providers failed
-      consecutiveErrors++;
-      console.error(`\n   All providers failed for chunk ${fromBlock}. Waiting...`);
-      
-      if (consecutiveErrors >= 5) {
-        console.error('\n   Too many consecutive errors. Stopping.');
-        break;
+        const timestamp = await getBlockTimestamp(client, blockNumber);
+
+        await prisma.swap.upsert({
+          where: { txHash },
+          update: {},
+          create: {
+            txHash,
+            blockNumber: Number(blockNumber),
+            timestamp,
+            chain: pool.chain,
+            dex: pool.name,
+            amountIn: isBuy ? otherAmount : moonAmount,
+            amountOut: isBuy ? moonAmount : otherAmount,
+            tokenIn: isBuy ? 'ETH' : 'MOON',
+            tokenOut: isBuy ? 'MOON' : 'ETH',
+            usdValue: null,
+            maker,
+          },
+        });
+
+        if (maker && maker.startsWith('0x')) {
+          await prisma.holder.upsert({
+            where: { address: maker },
+            create: {
+              address: maker,
+              hasOutgoing: true,
+              lastTransferAt: timestamp,
+            },
+            update: {
+              hasOutgoing: true,
+              lastTransferAt: timestamp,
+            }
+          });
+        }
+
+        totalSwaps++;
+      }
+
+      // Success - move to next chunk
+      fromBlock = toBlock + 1n;
+      await sleep(100); // Small delay between successful requests
+
+    } catch (error: any) {
+      if (error.message === 'CHUNK_TOO_LARGE') {
+        // Reduce chunk size and retry same block
+        chunkSize = chunkSize / 2n;
+        if (chunkSize < 10n) chunkSize = 10n;
+        console.log(`\n   Chunk too large, reducing to ${chunkSize} blocks`);
+        continue;
       }
       
-      await sleep(5000 * consecutiveErrors);
-    } else {
-      await sleep(DELAY_MS);
+      if (error.message === 'DAILY_LIMIT') {
+        console.error('\n   Daily limit reached. Please try again tomorrow or use a different RPC.');
+        return;
+      }
+      
+      if (error.message === 'MAX_RETRIES_EXCEEDED') {
+        console.error('\n   Max retries exceeded. Stopping to preserve progress.');
+        return;
+      }
+      
+      console.error(`\n   Unexpected error: ${error.message}`);
+      return;
     }
   }
 
-  console.log(`\n✅ Finished scanning ${pool.name}. Found ${totalSwaps} new swaps.`);
-}
-
-function createClient(chainObj: any, url: string | undefined) {
-  if (!url) return undefined;
-  return createPublicClient({
-    chain: chainObj,
-    transport: http(url, { timeout: 60_000 }),
-  });
+  console.log(`\n✅ Finished ${pool.name}. Found ${totalSwaps} new swaps.`);
 }
 
 async function main() {
   console.log('=== BACKFILL SWAPS ===\n');
-  console.log('This script scans all DEX pools for historical swap events.');
-  console.log('It will resume from where it left off.\n');
 
-  // Define providers with their block range limits
-  // QuickNode: unlimited, Alchemy free: 10 blocks, Public: 2000 blocks (but slow)
-  const novaProviders: RpcProvider[] = [
-    { name: 'QuickNode', url: QUICKNODE_URL_NOVA!, maxBlockRange: 10000n, client: createClient(arbitrumNova, QUICKNODE_URL_NOVA) },
-    { name: 'Alchemy', url: ALCHEMY_URL_NOVA!, maxBlockRange: 10n, client: createClient(arbitrumNova, ALCHEMY_URL_NOVA) },
-    { name: 'Public', url: 'https://nova.arbitrum.io/rpc', maxBlockRange: 2000n, client: createClient(arbitrumNova, 'https://nova.arbitrum.io/rpc') },
-  ].filter(p => p.client);
+  // Use Alchemy - it has 10 block limit but won't rate limit you
+  const alchemyNova = process.env.ALCHEMY_URL_NOVA;
+  const alchemyOne = process.env.ALCHEMY_URL_ONE;
+  
+  // Fallback to public RPCs
+  const novaRpc = alchemyNova || 'https://nova.arbitrum.io/rpc';
+  const oneRpc = alchemyOne || 'https://arb1.arbitrum.io/rpc';
+  
+  // Alchemy free tier = 10 block limit, Public = 2000 block limit
+  const novaChunk = alchemyNova ? 10 : 2000;
+  const oneChunk = alchemyOne ? 10 : 2000;
 
-  const oneProviders: RpcProvider[] = [
-    { name: 'QuickNode', url: QUICKNODE_URL_ONE!, maxBlockRange: 10000n, client: createClient(arbitrum, QUICKNODE_URL_ONE) },
-    { name: 'Alchemy', url: ALCHEMY_URL_ONE!, maxBlockRange: 10n, client: createClient(arbitrum, ALCHEMY_URL_ONE) },
-    { name: 'Public', url: 'https://arb1.arbitrum.io/rpc', maxBlockRange: 2000n, client: createClient(arbitrum, 'https://arb1.arbitrum.io/rpc') },
-  ].filter(p => p.client);
+  console.log(`Nova RPC: ${alchemyNova ? 'Alchemy (10 block chunks)' : 'Public (2000 block chunks)'}`);
+  console.log(`One RPC: ${alchemyOne ? 'Alchemy (10 block chunks)' : 'Public (2000 block chunks)'}`);
 
   const pools: PoolConfig[] = [
     {
@@ -331,7 +296,8 @@ async function main() {
       type: 'V2',
       name: 'SushiSwap V2 (Nova)',
       moonIsToken0: true,
-      providers: novaProviders,
+      rpcUrl: novaRpc,
+      chunkSize: novaChunk,
     },
     {
       chain: 'Arbitrum One',
@@ -340,7 +306,8 @@ async function main() {
       type: 'V3',
       name: 'Camelot V3',
       moonIsToken0: true,
-      providers: oneProviders,
+      rpcUrl: oneRpc,
+      chunkSize: oneChunk,
     },
     {
       chain: 'Arbitrum One',
@@ -349,7 +316,8 @@ async function main() {
       type: 'V3',
       name: 'Uniswap V3',
       moonIsToken0: true,
-      providers: oneProviders,
+      rpcUrl: oneRpc,
+      chunkSize: oneChunk,
     },
   ];
 
