@@ -58,6 +58,39 @@ The Scraper app stores data in the following tables:
 ## Configuration
 No environment variables are currently required. See `.env.example`.
 
+## Karma Leaderboard
+
+The scraper tracks karma earned by r/CryptoCurrency users in 28-day rounds (matching MOON distribution cycles).
+
+### How it Works
+- Each post/comment's score is tracked and attributed to the author
+- Karma is aggregated per round (Round 70 started Dec 9, 2025)
+- Leaderboard available at `/leaderboard` on the website
+
+### Scripts
+
+**Recalculate karma for a round** (useful if scraper missed data):
+```bash
+cd apps/scraper
+pnpm tsx scripts/recalc-karma.ts 70  # Round number
+```
+
+**Export karma leaderboard to CSV**:
+```bash
+cd apps/scraper
+pnpm tsx scripts/export-karma-csv.ts 70 karma-round-70.csv
+```
+
+Output format:
+```csv
+# Round 70 Karma Leaderboard
+# Period: 2025-12-09T00:00:00.000Z to 2026-01-06T00:00:00.000Z
+rank,username,post_karma,comment_karma,total_karma,post_count,comment_count
+1,Dongerated,14,0,14,1,0
+2,kirtash93,14,0,14,1,0
+...
+```
+
 ## Development
 
 ```bash
