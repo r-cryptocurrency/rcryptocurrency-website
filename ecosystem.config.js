@@ -16,7 +16,7 @@ module.exports = {
     },
     {
       name: "ledger",
-      script: "dist/src/index.js",
+      script: "dist/apps/ledger/src/index.js",
       cwd: "./apps/ledger",
       instances: 1,
       autorestart: true,
@@ -28,7 +28,7 @@ module.exports = {
     },
     {
       name: "monitor",
-      script: "dist/scripts/monitor-moons.js",
+      script: "dist/apps/ledger/scripts/monitor-moons.js",
       cwd: "./apps/ledger",
       instances: 1,
       autorestart: true,
