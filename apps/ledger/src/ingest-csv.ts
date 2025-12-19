@@ -56,12 +56,16 @@ async function ingest() {
       users.set(usernameLower, usernameRaw);
     }
 
+    // Ensure we use the canonical display name for the holder relation
+    // This prevents foreign key errors if the same user appears with different casing
+    const canonicalUsername = users.get(usernameLower)!;
+
     // Only create holder record if address exists and is valid
     if (addressRaw && addressRaw.startsWith('0x') && addressRaw.length === 42) {
       const addressLower = addressRaw.toLowerCase();
       // Map address to username (first occurrence wins)
       if (!holders.has(addressLower)) {
-        holders.set(addressLower, usernameRaw);
+        holders.set(addressLower, canonicalUsername);
       }
     } else {
       usersWithoutAddress++;
