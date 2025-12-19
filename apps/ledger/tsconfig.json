@@ -5,6 +5,8 @@
     "target": "ES2020",
     "module": "CommonJS",
     "lib": ["esnext", "dom"],
+    "noImplicitAny": false,
+    "strict": false,
     "baseUrl": ".",
     "paths": {
       "@rcryptocurrency/database": ["../../packages/database/src/index.ts"],

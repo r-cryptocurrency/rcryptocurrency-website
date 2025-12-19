@@ -46,7 +46,7 @@ async function traceAddress(address: string) {
       event: TRANSFER_EVENT,
       args: { from: address as `0x${string}` },
       fromBlock: fromBlock > 0n ? fromBlock : 0n,
-      toBlock: 'latest'
+      toBlock: 'latest' as const
     });
 
     console.log(`Found ${logs.length} outgoing transfers.`);
