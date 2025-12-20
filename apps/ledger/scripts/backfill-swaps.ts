@@ -22,6 +22,13 @@ const arbitrumNova = {
 // Swap events
 const SWAP_V2_EVENT = parseAbiItem('event Swap(address indexed sender, uint256 amount0In, uint256 amount1In, uint256 amount0Out, uint256 amount1Out, address indexed to)');
 const SWAP_V3_EVENT = parseAbiItem('event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)');
+const SWAP_V4_EVENT = parseAbiItem('event Swap(bytes32 indexed id, address indexed sender, int128 amount0, int128 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick, uint24 fee)');
+
+// V4 Pool IDs for MOON pools on the Pool Manager
+const V4_MOON_POOL_IDS = [
+  '0x065144c11d71d908594e6305b7ae834d00443374f87cc82692fbac8ed81af56a', // MOON/USDC
+  '0xa14aaa23a3b1ae4b0bdc031151c6814f1d06a901ffc5f8ab6951c75de2bc2c17', // MOON/ETH
+];
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
@@ -29,11 +36,14 @@ interface PoolConfig {
   chain: string;
   chainObj: any;
   address: string;
-  type: 'V2' | 'V3';
+  type: 'V2' | 'V3' | 'V4';
   name: string;
   moonIsToken0: boolean;
   rpcUrl: string;
   chunkSize: number;
+  deploymentBlock: bigint; // Block when pool was deployed - don't scan before this
+  poolIds?: string[]; // For V4 Pool Manager - filter by these pool IDs
+  token1Symbol?: string; // For token labeling (ETH, USDC, etc)
 }
 
 // Get the last processed block for a DEX
@@ -148,10 +158,15 @@ async function scanPool(pool: PoolConfig): Promise<boolean> {
   }
 
   const lastProcessedBlock = await getLastSwapBlock(pool.name, pool.chain);
-  const startBlock = lastProcessedBlock > 0n ? lastProcessedBlock + 1n : 0n;
+  // Don't scan before the pool was deployed - waste of time and resources
+  const minStartBlock = pool.deploymentBlock;
+  const startBlock = lastProcessedBlock > 0n 
+    ? (lastProcessedBlock + 1n > minStartBlock ? lastProcessedBlock + 1n : minStartBlock)
+    : minStartBlock;
 
   console.log(`Current block: ${currentBlock}`);
   console.log(`Last processed: ${lastProcessedBlock}`);
+  console.log(`Pool deployed at: ${pool.deploymentBlock}`);
   console.log(`Starting from: ${startBlock}`);
 
   if (startBlock >= currentBlock) {
@@ -159,7 +174,7 @@ async function scanPool(pool: PoolConfig): Promise<boolean> {
     return;
   }
 
-  const event = pool.type === 'V2' ? SWAP_V2_EVENT : SWAP_V3_EVENT;
+  const event = pool.type === 'V2' ? SWAP_V2_EVENT : pool.type === 'V3' ? SWAP_V3_EVENT : SWAP_V4_EVENT;
   let fromBlock = startBlock;
   let totalSwaps = 0;
   let chunkSize = BigInt(pool.chunkSize);
@@ -205,7 +220,34 @@ async function scanPool(pool: PoolConfig): Promise<boolean> {
             otherAmount = amount0In > 0 ? amount0In : amount0Out;
             isBuy = amount1Out > 0;
           }
+        } else if (pool.type === 'V4') {
+          // V4 has pool ID filtering and int128 amounts
+          const args = log.args as any;
+          const poolId = args.id?.toLowerCase();
+          
+          // Skip if not one of our MOON pools
+          if (pool.poolIds && !pool.poolIds.includes(poolId)) {
+            continue;
+          }
+          
+          // V4 uses int128 for amounts
+          const amount0 = Number(args.amount0 || 0n) / 1e18;
+          const amount1 = Number(args.amount1 || 0n) / 1e18;
+          maker = (args.sender || '').toLowerCase();
+
+          // V4: positive amount means tokens going INTO the pool (user pays)
+          // negative amount means tokens going OUT of the pool (user receives)
+          if (pool.moonIsToken0) {
+            moonAmount = Math.abs(amount0);
+            otherAmount = Math.abs(amount1);
+            isBuy = amount0 < 0; // User receives MOON = buy
+          } else {
+            moonAmount = Math.abs(amount1);
+            otherAmount = Math.abs(amount0);
+            isBuy = amount1 < 0;
+          }
         } else {
+          // V3
           const args = log.args as any;
           const amount0 = Number(args.amount0 || 0n) / 1e18;
           const amount1 = Number(args.amount1 || 0n) / 1e18;
@@ -225,6 +267,7 @@ async function scanPool(pool: PoolConfig): Promise<boolean> {
         if (moonAmount === 0) continue;
 
         const timestamp = await getBlockTimestamp(client, blockNumber);
+        const token1Symbol = pool.token1Symbol || 'ETH';
 
         await prisma.swap.upsert({
           where: { txHash },
@@ -237,8 +280,8 @@ async function scanPool(pool: PoolConfig): Promise<boolean> {
             dex: pool.name,
             amountIn: isBuy ? otherAmount : moonAmount,
             amountOut: isBuy ? moonAmount : otherAmount,
-            tokenIn: isBuy ? 'ETH' : 'MOON',
-            tokenOut: isBuy ? 'MOON' : 'ETH',
+            tokenIn: isBuy ? token1Symbol : 'MOON',
+            tokenOut: isBuy ? 'MOON' : token1Symbol,
             usdValue: null,
             maker,
           },
@@ -304,12 +347,19 @@ async function main() {
   console.log('Checking existing progress in database...');
   const novaProgress = await getLastSwapBlock('SushiSwap V2 (Nova)', 'Arbitrum Nova');
   const camelotProgress = await getLastSwapBlock('Camelot V3', 'Arbitrum One');
-  const uniswapProgress = await getLastSwapBlock('Uniswap V3', 'Arbitrum One');
+  const uniswapV3Progress = await getLastSwapBlock('Uniswap V3', 'Arbitrum One');
+  const uniswapV4Progress = await getLastSwapBlock('Uniswap V4 (One)', 'Arbitrum One');
   
   console.log(`  SushiSwap V2 (Nova): last block ${novaProgress > 0n ? novaProgress.toString() : 'none (starting fresh)'}`);
   console.log(`  Camelot V3: last block ${camelotProgress > 0n ? camelotProgress.toString() : 'none (starting fresh)'}`);
-  console.log(`  Uniswap V3: last block ${uniswapProgress > 0n ? uniswapProgress.toString() : 'none (starting fresh)'}`);
+  console.log(`  Uniswap V3: last block ${uniswapV3Progress > 0n ? uniswapV3Progress.toString() : 'none (starting fresh)'}`);
+  console.log(`  Uniswap V4: last block ${uniswapV4Progress > 0n ? uniswapV4Progress.toString() : 'none (starting fresh)'}`);
 
+  // Pool deployment blocks (from arbiscan contract creation txs)
+  // - SushiSwap V2 Nova: Block ~2_100_000 (Aug 2022, shortly after Nova launch)
+  // - Camelot V3: Block 192_085_710 (Mar 19, 2024)
+  // - Uniswap V3: Block 377_402_392 (Sep 9, 2025)
+  // - Uniswap V4 Manager: Block ~300_000_000 (Jan 2025), but MOON pools initialized later
   const pools: PoolConfig[] = [
     {
       chain: 'Arbitrum Nova',
@@ -320,6 +370,8 @@ async function main() {
       moonIsToken0: true,
       rpcUrl: novaRpc,
       chunkSize: 2000,
+      deploymentBlock: 2_100_000n, // SushiSwap pool created Aug 2022
+      token1Symbol: 'ETH',
     },
     {
       chain: 'Arbitrum One',
@@ -330,6 +382,8 @@ async function main() {
       moonIsToken0: true,
       rpcUrl: oneRpc,
       chunkSize: 2000,
+      deploymentBlock: 192_085_710n, // Created Mar 19, 2024
+      token1Symbol: 'ETH',
     },
     {
       chain: 'Arbitrum One',
@@ -340,6 +394,21 @@ async function main() {
       moonIsToken0: true,
       rpcUrl: oneRpc,
       chunkSize: 2000,
+      deploymentBlock: 377_402_392n, // Created Sep 9, 2025
+      token1Symbol: 'USDC',
+    },
+    {
+      chain: 'Arbitrum One',
+      chainObj: arbitrum,
+      address: LIQUIDITY_POOLS.one.uniswapV4Manager,
+      type: 'V4',
+      name: 'Uniswap V4 (One)',
+      moonIsToken0: true,
+      rpcUrl: oneRpc,
+      chunkSize: 2000,
+      deploymentBlock: 375_000_000n, // V4 MOON pools initialized late 2025
+      poolIds: V4_MOON_POOL_IDS,
+      token1Symbol: 'ETH/USDC', // Mixed pools
     },
   ];
 

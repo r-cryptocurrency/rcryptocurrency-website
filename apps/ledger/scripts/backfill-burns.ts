@@ -49,8 +49,12 @@ const arbitrumNova = {
 const BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
 const TRANSFER_EVENT = parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)');
 
-// QuickNode can handle larger chunks than public RPCs
-const CHUNK_SIZE = 5000n;
+// Per-chain chunk sizes - Ethereum public RPCs only allow 1k blocks max
+const CHUNK_SIZES: Record<string, bigint> = {
+  'Arbitrum Nova': 5000n,
+  'Arbitrum One': 5000n,
+  'Ethereum': 1000n, // Ethereum RPCs have stricter limits (max 1k blocks)
+};
 const DELAY_MS = 100;
 const MAX_RETRIES = 5;
 
@@ -134,9 +138,13 @@ async function scanChain(
   const lastProcessedBlock = await getLastBurnBlock(chainName);
   const startBlock = lastProcessedBlock > 0n ? lastProcessedBlock + 1n : 0n;
   
+  // Use chain-specific chunk size
+  const chunkSize = CHUNK_SIZES[chainName] || 2000n;
+  
   console.log(`Current block: ${currentBlock}`);
   console.log(`Last processed: ${lastProcessedBlock}`);
   console.log(`Starting from: ${startBlock}`);
+  console.log(`Chunk size: ${chunkSize} blocks`);
 
   if (startBlock >= currentBlock) {
     console.log(`✅ ${chainName} is already up to date!`);
@@ -147,7 +155,7 @@ async function scanChain(
   let totalBurns = 0;
 
   while (fromBlock < currentBlock) {
-    const toBlock = fromBlock + CHUNK_SIZE > currentBlock ? currentBlock : fromBlock + CHUNK_SIZE;
+    const toBlock = fromBlock + chunkSize > currentBlock ? currentBlock : fromBlock + chunkSize;
     
     const progress = ((Number(fromBlock - startBlock) / Number(currentBlock - startBlock)) * 100).toFixed(1);
     process.stdout.write(`\r[${progress}%] Scanning ${chainName} blocks ${fromBlock} to ${toBlock}...`);
