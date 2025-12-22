@@ -181,8 +181,33 @@ To tag an address (e.g., "Kraken", "Bridge", "Burn Address") so it appears label
 1.  Edit `seeds/known-addresses.csv`.
 2.  Run the seed script:
     ```bash
-    pnpm seed:labels
+    pnpm seed-labels
     ```
+
+### Linking Addresses to Reddit Users
+The official `MoonDistributions.csv` only contains addresses from when users first registered. If a user has transferred their MOONs to a new wallet, you can manually link that address to their Reddit username.
+
+**Single address:**
+```bash
+pnpm --filter @rcryptocurrency/ledger link-user <address> <username>
+
+# Example:
+pnpm --filter @rcryptocurrency/ledger link-user 0x113cc667fe5d0ac97c6e7212369c60102a0ced2a CryptoMaximalist
+```
+
+**Bulk associations:**
+1. Edit `seeds/known-users.csv` (format: `address,username`)
+2. Run the seed script:
+   ```bash
+   pnpm --filter @rcryptocurrency/ledger seed-users
+   ```
+
+**After linking, refresh the balance:**
+```bash
+pnpm --filter @rcryptocurrency/ledger refresh <address>
+```
+
+This is useful for high-profile users whose current wallet address differs from their original registration address.
 
 ### Ingesting Historical Data
 To map Reddit usernames to addresses using historical distribution CSVs:

@@ -7,10 +7,10 @@ import { prisma } from '@rcryptocurrency/database';
  * the official CSV only has their old/original wallet address.
  * 
  * Usage: 
- *   pnpm link <address> <username>
+ *   pnpm link-user <address> <username>
  * 
  * Example:
- *   pnpm link 0x113cc667fe5d0ac97c6e7212369c60102a0ced2a CryptoMaximalist
+ *   pnpm link-user 0x113cc667fe5d0ac97c6e7212369c60102a0ced2a CryptoMaximalist
  * 
  * This will:
  *   1. Create the RedditUser if they don't exist
@@ -23,8 +23,8 @@ const address = args[0]?.toLowerCase();
 let username = args[1];
 
 if (!address || !username) {
-  console.error('Usage: pnpm link <address> <username>');
-  console.error('Example: pnpm link 0x113cc667fe5d0ac97c6e7212369c60102a0ced2a CryptoMaximalist');
+  console.error('Usage: pnpm link-user <address> <username>');
+  console.error('Example: pnpm link-user 0x113cc667fe5d0ac97c6e7212369c60102a0ced2a CryptoMaximalist');
   process.exit(1);
 }
 
