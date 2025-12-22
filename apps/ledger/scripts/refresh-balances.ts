@@ -350,13 +350,20 @@ async function updateEarnedMoons(targetAddress?: string) {
 async function main() {
   console.log("--- DEBUG: RUNNING NEW VERSION ---");
   
-  // Parse arguments
+  // Parse arguments - support both `--address 0x...` and just `0x...`
   const args = process.argv.slice(2);
   const addressArgIndex = args.indexOf('--address');
   let targetAddress: string | null = null;
 
   if (addressArgIndex !== -1 && args[addressArgIndex + 1]) {
+    // Format: --address 0x...
     targetAddress = args[addressArgIndex + 1].toLowerCase();
+  } else if (args[0] && args[0].startsWith('0x')) {
+    // Format: just 0x... directly
+    targetAddress = args[0].toLowerCase();
+  }
+
+  if (targetAddress) {
     console.log(`Targeting single address: ${targetAddress}`);
   }
 
