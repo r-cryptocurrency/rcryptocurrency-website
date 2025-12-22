@@ -1,0 +1,8 @@
+address,username
+# Manual address-to-username associations
+# Use this for addresses that aren't in the official MoonDistributions.csv
+# or when a user has switched to a different wallet
+#
+# Format: address,username (no u/ prefix needed)
+#
+0x113cc667fe5d0ac97c6e7212369c60102a0ced2a,CryptoMaximalist

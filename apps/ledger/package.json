@@ -15,7 +15,10 @@
     "health-check": "ts-node -r tsconfig-paths/register scripts/health-check.ts",
     "monitor": "ts-node -r tsconfig-paths/register scripts/monitor-moons.ts",
     "seed-labels": "ts-node -r tsconfig-paths/register scripts/seed-labels.ts",
+    "seed-users": "ts-node -r tsconfig-paths/register scripts/seed-users.ts",
     "label": "ts-node -r tsconfig-paths/register scripts/label-address.ts",
+    "link": "ts-node -r tsconfig-paths/register scripts/link-address.ts",
+    "refresh": "ts-node -r tsconfig-paths/register scripts/refresh-balances.ts",
     "cleanup": "ts-node -r tsconfig-paths/register scripts/cleanup-duplicates.ts"
   },
   "dependencies": {
