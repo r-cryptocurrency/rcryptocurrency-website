@@ -4,11 +4,9 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 
 // Load .env from project root
-// In dev (ts-node): __dirname is src/monitor. Root is ../../../../
-// In prod (dist): __dirname is dist/src/monitor. Root is ../../../../../
-const envPath = process.env.NODE_ENV === 'production' 
-  ? path.resolve(__dirname, '../../../../../.env')
-  : path.resolve(__dirname, '../../../../.env');
+// PM2 sets cwd to apps/ledger, so go up 2 levels to reach project root
+// In dev, cwd is apps/ledger, same approach works
+const envPath = path.resolve(process.cwd(), '../../.env');
 
 dotenv.config({ path: envPath });
 

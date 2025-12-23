@@ -5,8 +5,8 @@ import { prisma } from '@rcryptocurrency/database';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
-// Load .env from project root
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+// PM2 sets cwd to apps/ledger, so go up 2 levels to reach project root
+dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
 
 const RPC_URL_NOVA = process.env.RPC_URL_NOVA?.trim();
 const RPC_URL_ONE = process.env.RPC_URL_ONE?.trim();

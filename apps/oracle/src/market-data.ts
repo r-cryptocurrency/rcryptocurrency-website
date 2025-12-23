@@ -5,7 +5,8 @@ import { prisma } from '@rcryptocurrency/database';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+// PM2 runs oracle from project root, so .env is in cwd
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 // Moon contracts on all chains
 const MOON_CONTRACTS = {

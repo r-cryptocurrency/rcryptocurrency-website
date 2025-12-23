@@ -5,7 +5,8 @@ import { LIQUIDITY_POOLS } from '@rcryptocurrency/chain-data';
 import dotenv from 'dotenv';
 import path from 'path';
 
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+// PM2 sets cwd to apps/ledger, so go up 2 levels to reach project root
+dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
 
 // Define Arbitrum Nova
 const arbitrumNova = {

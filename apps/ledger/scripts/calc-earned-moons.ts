@@ -5,7 +5,8 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
 
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+// PM2 sets cwd to apps/ledger, so go up 2 levels to reach project root
+dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
 
 const arbitrumNova = {
   id: 42170,

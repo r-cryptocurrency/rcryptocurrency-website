@@ -5,7 +5,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { updateMarketData } from './market-data';
 
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+// PM2 runs oracle from project root, so .env is in cwd
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 async function fetchNewActivity() {
   console.log('Polling r/CryptoCurrency via Public JSON...');
