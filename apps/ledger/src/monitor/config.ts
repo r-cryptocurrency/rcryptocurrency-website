@@ -13,7 +13,6 @@ const envPath = process.env.NODE_ENV === 'production'
 dotenv.config({ path: envPath });
 
 export const BURN_ADDRESS = '0x000000000000000000000000000000000000dead';
-export const TELEGRAM_API = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`;
 export const CHANNEL_ID = process.env.TELEGRAM_CHANNEL_ID || '@rCryptoCurrencyOfficial';
 export const NOTIFICATION_THRESHOLD = parseFloat(process.env.MOON_NOTIFICATION_THRESHOLD || '0.5');
 

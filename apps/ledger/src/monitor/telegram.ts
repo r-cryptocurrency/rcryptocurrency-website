@@ -1,13 +1,17 @@
-import { TELEGRAM_API, CHANNEL_ID } from './config';
+import { CHANNEL_ID } from './config';
 
 export async function sendTelegramMessage(message: string) {
-  if (!process.env.TELEGRAM_BOT_TOKEN) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) {
     console.warn('TELEGRAM_BOT_TOKEN not set, skipping notification.');
     return;
   }
 
+  // Build the API URL at runtime to ensure env vars are loaded
+  const apiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
   try {
-    const response = await fetch(`${TELEGRAM_API}/sendMessage`, {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
