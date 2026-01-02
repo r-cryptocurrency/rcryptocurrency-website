@@ -61,11 +61,13 @@ export async function getOrCreateCurrentRound(): Promise<{ id: number; startDate
 
 /**
  * Update karma for a user in the current round
+ * @param isNewItem - true when this is a newly discovered post/comment (increment count), false for score updates
  */
 export async function updateKarmaForUser(
   username: string,
   karmaChange: number,
-  isComment: boolean
+  isComment: boolean,
+  isNewItem: boolean = false
 ): Promise<void> {
   // Skip deleted/removed users and AutoModerator
   if (!username || username === '[deleted]' || username === '[removed]' || username === 'AutoModerator') {
@@ -84,9 +86,15 @@ export async function updateKarmaForUser(
     },
     update: {
       totalKarma: { increment: karmaChange },
-      ...(isComment 
-        ? { commentKarma: { increment: karmaChange } }
-        : { postKarma: { increment: karmaChange } }
+      ...(isComment
+        ? {
+            commentKarma: { increment: karmaChange },
+            ...(isNewItem ? { commentCount: { increment: 1 } } : {})
+          }
+        : {
+            postKarma: { increment: karmaChange },
+            ...(isNewItem ? { postCount: { increment: 1 } } : {})
+          }
       )
     },
     create: {
@@ -109,11 +117,12 @@ export async function recordKarmaContribution(
   username: string,
   score: number,
   isComment: boolean,
-  contentId: string
+  _contentId: string
 ): Promise<void> {
   // We want to track score changes over time
   // For simplicity, we just use the current score
-  await updateKarmaForUser(username, score, isComment);
+  // Pass true for isNewItem since this is called for new contributions
+  await updateKarmaForUser(username, score, isComment, true);
 }
 
 /**

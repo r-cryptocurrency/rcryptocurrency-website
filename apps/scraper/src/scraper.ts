@@ -126,11 +126,11 @@ export async function runScraper(sortType: 'new' | 'hot' | 'top' = 'new') {
         // Only track karma for posts in current round
         if (postRound === currentRound && post.author && post.author !== '[deleted]') {
           if (!existingPost) {
-            // New post - record full score
-            await updateKarmaForUser(post.author, post.score, false);
+            // New post - record full score AND increment count
+            await updateKarmaForUser(post.author, post.score, false, true);
           } else if (scoreChange !== 0) {
-            // Existing post - record delta
-            await updateKarmaForUser(post.author, scoreChange, false);
+            // Existing post - record delta only (don't increment count)
+            await updateKarmaForUser(post.author, scoreChange, false, false);
           }
         }
       } catch (err: any) {
@@ -191,11 +191,11 @@ export async function runScraper(sortType: 'new' | 'hot' | 'top' = 'new') {
           
           if (commentRound === currentRound && comment.author && comment.author !== '[deleted]') {
             if (!existingComment) {
-              // New comment - record full score
-              await updateKarmaForUser(comment.author, comment.score, true);
+              // New comment - record full score AND increment count
+              await updateKarmaForUser(comment.author, comment.score, true, true);
             } else if (commentScoreChange !== 0) {
-              // Existing comment - record delta
-              await updateKarmaForUser(comment.author, commentScoreChange, true);
+              // Existing comment - record delta only (don't increment count)
+              await updateKarmaForUser(comment.author, commentScoreChange, true, false);
             }
           }
           
