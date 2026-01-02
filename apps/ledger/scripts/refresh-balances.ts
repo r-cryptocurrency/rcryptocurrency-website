@@ -442,29 +442,29 @@ async function main() {
       const novaContracts = batch.map(h => ({
         address: MOON_CONTRACTS.arbitrumNova as `0x${string}`,
         abi: BALANCE_ABI,
-        functionName: 'balanceOf',
-        args: [h.address as `0x${string}`]
+        functionName: 'balanceOf' as const,
+        args: [h.address as `0x${string}`] as const
       }));
 
       const oneContracts = batch.map(h => ({
         address: MOON_CONTRACTS.arbitrumOne as `0x${string}`,
         abi: BALANCE_ABI,
-        functionName: 'balanceOf',
-        args: [h.address as `0x${string}`]
+        functionName: 'balanceOf' as const,
+        args: [h.address as `0x${string}`] as const
       }));
 
       const ethContracts = batch.map(h => ({
         address: MOON_CONTRACTS.ethereum as `0x${string}`,
         abi: BALANCE_ABI,
-        functionName: 'balanceOf',
-        args: [h.address as `0x${string}`]
+        functionName: 'balanceOf' as const,
+        args: [h.address as `0x${string}`] as const
       }));
 
       // Execute multicalls with retry
       const [novaResults, oneResults, ethResults] = await Promise.all([
-        withRetry(() => novaClient.multicall({ contracts: novaContracts })),
-        withRetry(() => oneClient.multicall({ contracts: oneContracts })),
-        withRetry(() => ethClient.multicall({ contracts: ethContracts }))
+        withRetry(() => novaClient.multicall({ contracts: novaContracts })) as Promise<any>,
+        withRetry(() => oneClient.multicall({ contracts: oneContracts })) as Promise<any>,
+        withRetry(() => ethClient.multicall({ contracts: ethContracts })) as Promise<any>
       ]);
 
       // Process results
