@@ -69,7 +69,15 @@ const ethClient = createPublicClient({
   ])
 });
 
-const BALANCE_ABI = [parseAbiItem('function balanceOf(address) view returns (uint256)')];
+const BALANCE_ABI = [
+  {
+    type: 'function',
+    name: 'balanceOf',
+    inputs: [{ name: 'account', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+] as const;
 const TRANSFER_EVENT = parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)');
 
 async function getBalance(client: any, contract: string, address: string): Promise<number> {
