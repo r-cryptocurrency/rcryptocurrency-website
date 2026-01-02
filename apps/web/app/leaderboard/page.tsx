@@ -111,30 +111,86 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
             </div>
           </div>
 
-          {/* Leaderboard Table */}
-          <div className="bg-white/80 dark:bg-black/20 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden border border-orange-100 dark:border-white/10">
+          {/* Leaderboard - Mobile Card View (hidden on md+) */}
+          <div className="md:hidden space-y-3">
+            {entries.length === 0 ? (
+              <div className="bg-white/80 dark:bg-black/20 backdrop-blur-sm rounded-xl shadow-lg p-12 text-center border border-orange-100 dark:border-white/10">
+                <div className="text-6xl mb-4">🏆</div>
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">No Data Yet</h2>
+                <p className="text-slate-600 dark:text-slate-400">
+                  {isActive
+                    ? 'Karma tracking has just started. Post and comment on r/CryptoCurrency to appear here!'
+                    : 'No karma data recorded for this round.'}
+                </p>
+              </div>
+            ) : (
+              entries.map((entry, i) => (
+                <div key={entry.id} className="bg-white/80 dark:bg-black/20 backdrop-blur-sm rounded-lg shadow-md p-4 border border-orange-100 dark:border-white/10">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="text-2xl">
+                        {i === 0 && '🥇'}
+                        {i === 1 && '🥈'}
+                        {i === 2 && '🥉'}
+                        {i > 2 && <span className="font-bold text-lg text-slate-600 dark:text-slate-400">#{i + 1}</span>}
+                      </div>
+                      <a
+                        href={`https://reddit.com/u/${entry.username}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-lg text-slate-800 dark:text-white hover:text-rcc-orange transition-colors break-all"
+                      >
+                        u/{entry.username}
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="bg-orange-50 dark:bg-white/5 rounded-md p-2">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 uppercase">Post Karma</div>
+                      <div className="text-lg font-bold text-slate-800 dark:text-white">{entry.postKarma.toLocaleString()}</div>
+                      <div className="text-xs text-slate-400">{entry.postCount} posts</div>
+                    </div>
+                    <div className="bg-orange-50 dark:bg-white/5 rounded-md p-2">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 uppercase">Comment Karma</div>
+                      <div className="text-lg font-bold text-slate-800 dark:text-white">{entry.commentKarma.toLocaleString()}</div>
+                      <div className="text-xs text-slate-400">{entry.commentCount} comments</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-orange-100 to-orange-50 dark:from-orange-900/20 dark:to-orange-800/10 rounded-md p-3 text-center">
+                    <div className="text-xs text-slate-600 dark:text-slate-400 uppercase font-semibold mb-1">Total Karma</div>
+                    <div className="text-2xl font-bold text-rcc-orange">{entry.totalKarma.toLocaleString()}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Leaderboard - Desktop Table View (hidden on mobile) */}
+          <div className="hidden md:block bg-white/80 dark:bg-black/20 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden border border-orange-100 dark:border-white/10">
             {entries.length === 0 ? (
               <div className="p-12 text-center">
                 <div className="text-6xl mb-4">🏆</div>
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">No Data Yet</h2>
                 <p className="text-slate-600 dark:text-slate-400">
-                  {isActive 
-                    ? 'Karma tracking has just started. Post and comment on r/CryptoCurrency to appear here!' 
+                  {isActive
+                    ? 'Karma tracking has just started. Post and comment on r/CryptoCurrency to appear here!'
                     : 'No karma data recorded for this round.'}
                 </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full table-fixed text-left border-collapse">
+                <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-orange-100/50 dark:bg-white/5 border-b border-orange-100 dark:border-white/10">
-                      <th className="px-4 py-3 font-semibold text-slate-600 dark:text-gray-400 text-sm uppercase tracking-wider w-16 text-center">Rank</th>
+                      <th className="px-4 py-3 font-semibold text-slate-600 dark:text-gray-400 text-sm uppercase tracking-wider text-center">Rank</th>
                       <th className="px-4 py-3 font-semibold text-slate-600 dark:text-gray-400 text-sm uppercase tracking-wider">Username</th>
-                      <th className="px-4 py-3 font-semibold text-slate-600 dark:text-gray-400 text-sm uppercase tracking-wider w-28 text-right">Post Karma</th>
-                      <th className="px-4 py-3 font-semibold text-slate-600 dark:text-gray-400 text-sm uppercase tracking-wider w-32 text-right">Comment Karma</th>
-                      <th className="px-4 py-3 font-semibold text-slate-600 dark:text-gray-400 text-sm uppercase tracking-wider w-28 text-right">Total</th>
-                      <th className="px-4 py-3 font-semibold text-slate-600 dark:text-gray-400 text-sm uppercase tracking-wider w-20 text-center">Posts</th>
-                      <th className="px-4 py-3 font-semibold text-slate-600 dark:text-gray-400 text-sm uppercase tracking-wider w-24 text-center">Comments</th>
+                      <th className="px-4 py-3 font-semibold text-slate-600 dark:text-gray-400 text-sm uppercase tracking-wider text-right">Post<br/>Karma</th>
+                      <th className="px-4 py-3 font-semibold text-slate-600 dark:text-gray-400 text-sm uppercase tracking-wider text-right">Comment<br/>Karma</th>
+                      <th className="px-4 py-3 font-semibold text-slate-600 dark:text-gray-400 text-sm uppercase tracking-wider text-right">Total</th>
+                      <th className="px-4 py-3 font-semibold text-slate-600 dark:text-gray-400 text-sm uppercase tracking-wider text-center">Posts</th>
+                      <th className="px-4 py-3 font-semibold text-slate-600 dark:text-gray-400 text-sm uppercase tracking-wider text-center">Comments</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-orange-100 dark:divide-white/10">
@@ -147,7 +203,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
                           {i > 2 && <span className="font-bold text-slate-600 dark:text-slate-400">{i + 1}</span>}
                         </td>
                         <td className="px-4 py-3">
-                          <a 
+                          <a
                             href={`https://reddit.com/u/${entry.username}`}
                             target="_blank"
                             rel="noopener noreferrer"
