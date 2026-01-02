@@ -72,26 +72,26 @@ export default async function Home() {
               {/* Social Links */}
               <div className="mb-8">
                 <h3 className="text-slate-700 dark:text-slate-300 text-lg font-semibold mb-4">Join the Community</h3>
-                <div className="flex flex-wrap gap-3 justify-center lg:justify-start max-w-xl">
-                  <a href="https://www.reddit.com/r/CryptoCurrency/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-2xl mx-auto lg:mx-0">
+                  <a href="https://www.reddit.com/r/CryptoCurrency/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-4 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
                     <i className="fa-brands fa-reddit text-xl"></i>
-                    Reddit
+                    <span className="hidden sm:inline">Reddit</span>
                   </a>
-                  <a href="https://discord.gg/ZuU9Gqeqmy" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
+                  <a href="https://discord.gg/ZuU9Gqeqmy" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
                     <i className="fa-brands fa-discord text-xl"></i>
-                    Discord
+                    <span className="hidden sm:inline">Discord</span>
                   </a>
-                  <a href="https://t.me/rCryptoCurrencyOfficial" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
+                  <a href="https://t.me/rCryptoCurrencyOfficial" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
                     <i className="fa-brands fa-telegram text-xl"></i>
-                    Telegram
+                    <span className="hidden sm:inline">Telegram</span>
                   </a>
-                  <a href="https://twitter.com/CCMOD_" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-black hover:bg-slate-900 text-white font-semibold py-3 px-6 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
+                  <a href="https://twitter.com/CCMOD_" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-black hover:bg-slate-900 text-white font-semibold py-3 px-4 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
                     <i className="fa-brands fa-x-twitter text-xl"></i>
-                    X
+                    <span className="hidden sm:inline">X</span>
                   </a>
-                  <a href="https://snapshot.org/#/s:cryptomods.eth" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
+                  <a href="https://snapshot.org/#/s:cryptomods.eth" target="_blank" rel="noopener noreferrer" className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
                     <i className="fa-solid fa-vote-yea text-xl"></i>
-                    Governance
+                    <span className="hidden sm:inline">Governance</span>
                   </a>
                 </div>
               </div>
