@@ -13,13 +13,14 @@ export default async function RichlistPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const page = typeof searchParams.page === 'string' ? parseInt(searchParams.page) : 1;
+  const parsedPage = typeof searchParams.page === 'string' ? parseInt(searchParams.page) : 1;
+  const page = Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
   const sort = typeof searchParams.sort === 'string' ? searchParams.sort : 'totalBalance';
   const order = typeof searchParams.order === 'string' ? searchParams.order : 'desc';
   const search = typeof searchParams.search === 'string' ? searchParams.search : undefined;
   
   const pageSize = 100;
-  const skip = (page - 1) * pageSize;
+  const skip = Math.max(0, (page - 1) * pageSize);
 
   let orderBy: any[] = [];
   let extraWhere: Prisma.HolderWhereInput = {};

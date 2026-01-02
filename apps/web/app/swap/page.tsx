@@ -16,14 +16,18 @@ const PAGE_SIZE = 20;
 
 async function getRecentSwaps(page: number, minAmount: number, dex: string | undefined) {
   try {
+    // Ensure page is at least 1 to prevent negative skip values
+    const safePage = Math.max(1, Math.floor(page));
+    const safeMinAmount = Math.max(0, minAmount);
+    
     const where: any = {};
-    if (minAmount > 0) {
+    if (safeMinAmount > 0) {
       // Filter by amountIn OR amountOut being greater than minAmount
       // Since we don't know which one is MOON easily here without checking token symbol, 
       // we'll just check if either is large enough.
       where.OR = [
-        { amountIn: { gte: minAmount } },
-        { amountOut: { gte: minAmount } }
+        { amountIn: { gte: safeMinAmount } },
+        { amountOut: { gte: safeMinAmount } }
       ];
     }
     if (dex && dex !== 'all') {
@@ -34,7 +38,7 @@ async function getRecentSwaps(page: number, minAmount: number, dex: string | und
       prisma.swap.findMany({
         where,
         orderBy: { timestamp: 'desc' },
-        skip: (page - 1) * PAGE_SIZE,
+        skip: (safePage - 1) * PAGE_SIZE,
         take: PAGE_SIZE,
       }),
       prisma.swap.count({ where })
@@ -58,8 +62,10 @@ async function getRecentSwaps(page: number, minAmount: number, dex: string | und
 }
 
 export default async function SwapPage({ searchParams }: { searchParams: { page?: string, minAmount?: string, dex?: string } }) {
-  const page = parseInt(searchParams.page || '1');
-  const minAmount = parseFloat(searchParams.minAmount || '0');
+  const parsedPage = parseInt(searchParams.page || '1');
+  const page = Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+  const parsedMinAmount = parseFloat(searchParams.minAmount || '0');
+  const minAmount = Number.isNaN(parsedMinAmount) || parsedMinAmount < 0 ? 0 : parsedMinAmount;
   const dex = searchParams.dex;
 
   const { data: swaps, total, holderMap } = await getRecentSwaps(page, minAmount, dex);

@@ -60,9 +60,13 @@ async function getBurnStats() {
 
 async function getBurns(page: number, minAmount: number, chain: string | undefined) {
   try {
+    // Ensure page is at least 1 to prevent negative skip values
+    const safePage = Math.max(1, Math.floor(page));
+    const safeMinAmount = Math.max(0, minAmount);
+    
     const where: any = {};
-    if (minAmount > 0) {
-      where.amount = { gte: minAmount };
+    if (safeMinAmount > 0) {
+      where.amount = { gte: safeMinAmount };
     }
     if (chain && chain !== 'all') {
       where.chain = chain;
@@ -72,7 +76,7 @@ async function getBurns(page: number, minAmount: number, chain: string | undefin
       prisma.burn.findMany({
         where,
         orderBy: { timestamp: 'desc' },
-        skip: (page - 1) * PAGE_SIZE,
+        skip: (safePage - 1) * PAGE_SIZE,
         take: PAGE_SIZE,
       }),
       prisma.burn.count({ where })
@@ -96,8 +100,10 @@ async function getBurns(page: number, minAmount: number, chain: string | undefin
 }
 
 export default async function BurnsPage({ searchParams }: { searchParams: { page?: string, minAmount?: string, chain?: string } }) {
-  const page = parseInt(searchParams.page || '1');
-  const minAmount = parseFloat(searchParams.minAmount || '0');
+  const parsedPage = parseInt(searchParams.page || '1');
+  const page = Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+  const parsedMinAmount = parseFloat(searchParams.minAmount || '0');
+  const minAmount = Number.isNaN(parsedMinAmount) || parsedMinAmount < 0 ? 0 : parsedMinAmount;
   const chain = searchParams.chain;
 
   const [{ data: burns, total, holderMap }, { totalBurned, chartData }] = await Promise.all([

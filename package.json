@@ -16,6 +16,11 @@
     "turbo": "^1.10.0",
     "typescript": "^5.1.0"
   },
+  "pnpm": {
+    "overrides": {
+      "qs": ">=6.13.0"
+    }
+  },
   "packageManager": "pnpm@8.6.0",
   "engines": {
     "node": ">=18.0.0"
