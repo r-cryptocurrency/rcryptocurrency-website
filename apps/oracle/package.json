@@ -10,10 +10,9 @@
   },
   "dependencies": {
     "@rcryptocurrency/database": "workspace:*",
-    "axios": "^1.4.0",
+    "axios": "^1.8.2",
     "cron": "^2.3.0",
     "dotenv": "^16.0.3",
-    "snoowrap": "^1.23.0",
     "viem": "^2.21.0"
   },
   "devDependencies": {
