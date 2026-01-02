@@ -69,15 +69,7 @@ const ethClient = createPublicClient({
   ])
 });
 
-const BALANCE_ABI = [
-  {
-    type: 'function',
-    name: 'balanceOf',
-    inputs: [{ name: 'account', type: 'address' }],
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-] as const;
+const BALANCE_ABI = [parseAbiItem('function balanceOf(address) view returns (uint256)')];
 const TRANSFER_EVENT = parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)');
 
 async function getBalance(client: any, contract: string, address: string): Promise<number> {
@@ -442,29 +434,29 @@ async function main() {
       const novaContracts = batch.map(h => ({
         address: MOON_CONTRACTS.arbitrumNova as `0x${string}`,
         abi: BALANCE_ABI,
-        functionName: 'balanceOf' as const,
-        args: [h.address as `0x${string}`] as const
+        functionName: 'balanceOf',
+        args: [h.address as `0x${string}`]
       }));
 
       const oneContracts = batch.map(h => ({
         address: MOON_CONTRACTS.arbitrumOne as `0x${string}`,
         abi: BALANCE_ABI,
-        functionName: 'balanceOf' as const,
-        args: [h.address as `0x${string}`] as const
+        functionName: 'balanceOf',
+        args: [h.address as `0x${string}`]
       }));
 
       const ethContracts = batch.map(h => ({
         address: MOON_CONTRACTS.ethereum as `0x${string}`,
         abi: BALANCE_ABI,
-        functionName: 'balanceOf' as const,
-        args: [h.address as `0x${string}`] as const
+        functionName: 'balanceOf',
+        args: [h.address as `0x${string}`]
       }));
 
       // Execute multicalls with retry
       const [novaResults, oneResults, ethResults] = await Promise.all([
-        withRetry(() => novaClient.multicall({ contracts: novaContracts })) as Promise<any>,
-        withRetry(() => oneClient.multicall({ contracts: oneContracts })) as Promise<any>,
-        withRetry(() => ethClient.multicall({ contracts: ethContracts })) as Promise<any>
+        withRetry(() => novaClient.multicall({ contracts: novaContracts })),
+        withRetry(() => oneClient.multicall({ contracts: oneContracts })),
+        withRetry(() => ethClient.multicall({ contracts: ethContracts }))
       ]);
 
       // Process results
