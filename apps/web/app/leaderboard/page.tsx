@@ -124,7 +124,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
                 </p>
               </div>
             ) : (
-              entries.map((entry, i) => (
+              entries.map((entry: any, i: number) => (
                 <div key={entry.id} className="bg-white/80 dark:bg-black/20 backdrop-blur-sm rounded-lg shadow-md p-4 border border-orange-100 dark:border-white/10">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
@@ -194,7 +194,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-orange-100 dark:divide-white/10">
-                    {entries.map((entry, i) => (
+                    {entries.map((entry: any, i: number) => (
                       <tr key={entry.id} className="hover:bg-orange-50 dark:hover:bg-white/5 transition-colors">
                         <td className="px-4 py-3 text-center">
                           {i === 0 && <span className="text-2xl">🥇</span>}

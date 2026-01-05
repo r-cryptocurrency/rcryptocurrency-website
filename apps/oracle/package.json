@@ -13,7 +13,7 @@
     "axios": "^1.7.7",
     "cron": "^2.3.0",
     "dotenv": "^16.0.3",
-    "viem": "^2.21.0"
+    "viem": "^2.43.5"
   },
   "devDependencies": {
     "@rcryptocurrency/eslint-config": "workspace:*",

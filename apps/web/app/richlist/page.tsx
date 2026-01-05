@@ -113,8 +113,8 @@ export default async function RichlistPage({
             {page > 3 && <span className="px-2 text-slate-400">...</span>}
             
             {Array.from({ length: 5 }, (_, i) => page - 2 + i)
-              .filter(p => p > 0 && p <= totalPages)
-              .map(p => (
+              .filter((p: number) => p > 0 && p <= totalPages)
+              .map((p: number) => (
                 <PaginationButton key={p} page={p} label={p.toString()} active={p === page} />
               ))}
             

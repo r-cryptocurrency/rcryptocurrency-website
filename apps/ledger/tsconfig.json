@@ -2,17 +2,18 @@
   "extends": "@rcryptocurrency/tsconfig/base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "target": "ES2020",
+    "target": "ES2022",
     "module": "CommonJS",
-    "lib": ["esnext", "dom"],
-    "noImplicitAny": false,
-    "strict": false,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "lib": ["ES2022", "dom"],
+    "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
       "@rcryptocurrency/database": ["../../packages/database/src/index.ts"],
       "@rcryptocurrency/chain-data": ["../../packages/chain-data/src/index.ts"]
     }
   },
-  "include": ["src/**/*", "scripts/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

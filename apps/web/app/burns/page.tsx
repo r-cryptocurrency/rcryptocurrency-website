@@ -24,7 +24,7 @@ async function getBurnStats() {
   // Group by day for the chart
   const chartDataMap = new Map<string, { date: string, Nova: number, One: number, Total: number }>();
 
-  allBurns.forEach(burn => {
+  allBurns.forEach((burn: any) => {
     totalBurned += burn.amount;
     if (burn.chain.includes('Nova')) novaBurned += burn.amount;
     if (burn.chain.includes('One')) oneBurned += burn.amount;
@@ -43,7 +43,7 @@ async function getBurnStats() {
   let runningNova = 0;
   let runningOne = 0;
   
-  const chartData = sortedDates.map(date => {
+  const chartData = sortedDates.map((date: string) => {
     const day = chartDataMap.get(date)!;
     runningNova += day.Nova;
     runningOne += day.One;
@@ -83,14 +83,14 @@ async function getBurns(page: number, minAmount: number, chain: string | undefin
     ]);
 
     // Resolve senders
-    const senders = Array.from(new Set(data.map(b => b.sender.toLowerCase())));
+    const senders = Array.from(new Set(data.map((b: any) => b.sender.toLowerCase())));
     const holders = await prisma.holder.findMany({
       where: { address: { in: senders } },
       select: { address: true, username: true, label: true }
     });
     
     const holderMap = new Map<string, { username: string | null, label: string | null }>();
-    holders.forEach(h => holderMap.set(h.address.toLowerCase(), h));
+    holders.forEach((h: any) => holderMap.set(h.address.toLowerCase(), h));
 
     return { data, total, holderMap };
   } catch (e) {
@@ -151,7 +151,7 @@ export default async function BurnsPage({ searchParams }: { searchParams: { page
                 </TableRow>
               </TableHead>
               <TableBody>
-                {burns.map((burn) => {
+                {burns.map((burn: any) => {
                   const senderInfo = holderMap.get(burn.sender.toLowerCase());
                   const label = senderInfo?.username 
                     ? (senderInfo.username.startsWith('u/') ? senderInfo.username : `u/${senderInfo.username}`) 

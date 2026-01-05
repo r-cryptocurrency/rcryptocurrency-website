@@ -79,7 +79,7 @@ async function getBalance(client: any, contract: string, address: string): Promi
       abi: BALANCE_ABI,
       functionName: 'balanceOf',
       args: [address as `0x${string}`]
-    });
+    } as any);
     return Number(balance) / 1e18;
   } catch (e) {
     console.error(`Error fetching balance for ${address}:`, e);
@@ -454,9 +454,9 @@ async function main() {
 
       // Execute multicalls with retry
       const [novaResults, oneResults, ethResults] = await Promise.all([
-        withRetry(() => novaClient.multicall({ contracts: novaContracts })),
-        withRetry(() => oneClient.multicall({ contracts: oneContracts })),
-        withRetry(() => ethClient.multicall({ contracts: ethContracts }))
+        withRetry(() => novaClient.multicall({ contracts: novaContracts } as any)),
+        withRetry(() => oneClient.multicall({ contracts: oneContracts } as any)),
+        withRetry(() => ethClient.multicall({ contracts: ethContracts } as any))
       ]);
 
       // Process results

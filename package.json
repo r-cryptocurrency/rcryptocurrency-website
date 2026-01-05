@@ -31,7 +31,8 @@
       "express": ">=4.19.2",
       "cookie": ">=0.7.0",
       "path-to-regexp": ">=0.1.10",
-      "axios": ">=1.7.4"
+      "axios": ">=1.7.4",
+      "tmp": ">=0.2.4"
     }
   },
   "packageManager": "pnpm@8.6.0",

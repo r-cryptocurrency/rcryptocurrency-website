@@ -45,14 +45,14 @@ async function getRecentSwaps(page: number, minAmount: number, dex: string | und
     ]);
 
     // Resolve makers
-    const makers = Array.from(new Set(data.map(s => s.maker.toLowerCase())));
+    const makers = Array.from(new Set(data.map((s: any) => s.maker.toLowerCase())));
     const holders = await prisma.holder.findMany({
       where: { address: { in: makers } },
       select: { address: true, username: true, label: true }
     });
     
     const holderMap = new Map<string, { username: string | null, label: string | null }>();
-    holders.forEach(h => holderMap.set(h.address.toLowerCase(), h));
+    holders.forEach((h: any) => holderMap.set(h.address.toLowerCase(), h));
 
     return { data, total, holderMap };
   } catch (e) {
@@ -130,7 +130,7 @@ export default async function SwapPage({ searchParams }: { searchParams: { page?
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {swaps.map((swap) => {
+                  {swaps.map((swap: any) => {
                     const makerInfo = holderMap.get(swap.maker.toLowerCase());
                     const label = makerInfo?.username 
                       ? (makerInfo.username.startsWith('u/') ? makerInfo.username : `u/${makerInfo.username}`) 

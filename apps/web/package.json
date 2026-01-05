@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "@rainbow-me/rainbowkit": "^2.2.10",
+    "@rcryptocurrency/chain-data": "workspace:^",
     "@rcryptocurrency/database": "workspace:*",
     "@rcryptocurrency/ui": "workspace:*",
     "@tanstack/react-query": "^5.90.16",
@@ -18,7 +20,7 @@
     "next-themes": "^0.4.6",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "viem": "2",
+    "viem": "^2.43.5",
     "wagmi": "2"
   },
   "devDependencies": {

@@ -232,7 +232,7 @@ export async function getLeaderboard(roundNumber: number, limit = 100): Promise<
     take: limit
   });
 
-  return entries.map((e, i) => ({
+  return entries.map((e: any, i: number) => ({
     username: e.username,
     postKarma: e.postKarma,
     commentKarma: e.commentKarma,

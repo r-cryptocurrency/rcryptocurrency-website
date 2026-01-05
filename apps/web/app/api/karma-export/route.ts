@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
   // Build CSV
   const headers = ['rank', 'username', 'post_karma', 'comment_karma', 'total_karma', 'post_count', 'comment_count'];
-  const rows = entries.map((entry, i) => [
+  const rows = entries.map((entry: any, i: number) => [
     i + 1,
     entry.username,
     entry.postKarma,
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     `# Total participants: ${entries.length}`,
     '',
     headers.join(','),
-    ...rows.map(row => row.join(','))
+    ...rows.map((row: any[]) => row.join(','))
   ].join('\n');
 
   return new NextResponse(csvContent, {

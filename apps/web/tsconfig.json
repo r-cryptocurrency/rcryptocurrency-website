@@ -1,6 +1,10 @@
 {
   "extends": "@rcryptocurrency/tsconfig/nextjs.json",
   "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "moduleResolution": "node",
+    "skipLibCheck": true,
     "plugins": [{ "name": "next" }],
     "jsx": "preserve"
   },

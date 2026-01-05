@@ -1,36 +1,88 @@
-# Server Update Instructions
+# Server Update Instructions (Post-Migration & Security Audit)
 
-This file tracks the commands and steps required to update the production server as we roll out the decentralized MOON distribution system.
+This file tracks the commands and steps required to update the production server following the major security upgrade (TS 5.4.5, Viem 2.x, Prisma 5) and the rollout of the decentralized MOON distribution system.
 
-## Phase 1: Database Schema
+## ⚠️ CRITICAL: Security & Core Dependencies (MANDATORY)
 
 ### Updated: January 5, 2026
 
-Run the following commands to apply the new schema models (`UserAddressLink`, `DistributionRound`, and `DistributionClaim`) and update the `RedditUser` model.
+We have patched 28 vulnerabilities and upgraded the entire codebase to TypeScript 5.4.5. You **must** perform a clean install and rebuild.
+
+```bash
+# 1. Clear any old lockfile state (on server)
+rm pnpm-lock.yaml
+
+# 2. Force update dependencies and apply security overrides
+pnpm install
+
+# 3. Regenerate Prisma Client (v5.21.1)
+pnpm --filter @rcryptocurrency/database db:generate
+```
+
+---
+
+## Phase 1: Database Migration
+
+### Updated: January 5, 2026
+
+Run the following commands to apply the new schema models (`UserAddressLink`, `DistributionRound`, and `DistributionClaim`) and update the `RedditUser` model to accommodate the new distribution system.
 
 ```bash
 # Navigate to the root of the project
 cd /home/jw/src/rcryptocurrency-site
 
-# Apply the schema changes and update the Prisma client
+# Apply the schema changes (Non-destructive update)
+# Note: Using db:push is recommended for the initial rollout phase
 pnpm --filter @rcryptocurrency/database db:push
 ```
 
 ---
 
-## Phase 2: Web App Dependencies
+## Phase 2: Build & Verification
 
-### Updated: January 5, 2026
-
-Install the new wallet connection and query libraries in the web application.
+Due to the strict TypeScript 5.4.5 upgrade and module resolution changes, the server **must** run a full build to ensure all type-check constraints are met.
 
 ```bash
-# Navigate to the web app directory
-cd /home/jw/src/rcryptocurrency-site/apps/web
-
-# Install dependencies
-pnpm add wagmi@2 viem@2 @tanstack/react-query
+# Run a full monorepo build (will build packages/database, web, oracle, ledger, etc.)
+pnpm build
 ```
+
+If the build fails with "BigInt literals" errors, ensure the server's Node.js version is at least **v18.0.0** (Recommended: **v20+**).
+
+---
+
+## Phase 3: Service Restart (PM2)
+
+After a successful build, you must reload the background services to pick up the new dependency versions and compiled code.
+
+```bash
+# Reload all applications defined in the ecosystem config
+pm2 reload ecosystem.config.js
+
+# Verify all services are online
+pm2 list
+```
+
+---
+
+## Phase 4: Redistribution & Merkle Pipeline
+
+To run a distribution round with the new pipeline:
+
+1. **Recalculate Karma**:
+   ```bash
+   pnpm --filter scraper run export-karma
+   ```
+
+2. **Generate Merkle Root & Claims**:
+   ```bash
+   pnpm --filter scraper run generate-merkle
+   ```
+
+3. **Ingest Proofs to Database**:
+   ```bash
+   pnpm --filter ledger run ingest-csv
+   ```
 
 ---
 

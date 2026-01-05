@@ -1,9 +1,9 @@
-import { prisma as dbPrisma } from '@rcryptocurrency/database';
+import { prisma as dbPrisma, PrismaClient } from '@rcryptocurrency/database';
 import { createPublicClient, http, fallback } from 'viem';
 import { mainnet } from 'viem/chains';
 
 // Initialize Prisma Client
-export const prisma = dbPrisma;
+export const prisma: PrismaClient = dbPrisma;
 
 // Setup Mainnet Client for ENS Resolution
 const ethTransports = [];

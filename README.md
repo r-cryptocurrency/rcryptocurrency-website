@@ -90,6 +90,18 @@ The distribution system allows users to trustlessly claim MOONs based on their s
 ### 1. Verification Flow (User)
 - **Link**: User connects wallet on `/link` and verifies their Reddit username by posting a generated code as a Reddit comment.
 - **Sync**: The system verifies the comment and links the address in the DB. This address is now the "active" distribution address for that user.
+- **Enforcement**: Only **one active address** is allowed per Reddit username. Linking a new address automatically deactivates previous links for that user.
+
+---
+
+## 🛡 Security & Modernization (January 2026 Audit)
+
+The codebase has undergone a comprehensive security audit and modernization:
+- **Patch**: Resolved 28 security vulnerabilities via pnpm overrides.
+- **Stack**: Upgraded to **TypeScript 5.4.5**, **Prisma 5.21.1**, **Wagmi v2**, and **Viem 2.x**.
+- **Engine**: Fully optimized for **Node.js 20+** with `ES2022` target support.
+
+---
 
 ### 2. Distribution Lifecycle (Admin/DAO)
 #### A. Finalize Karma

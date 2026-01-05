@@ -106,7 +106,7 @@ export default function RichlistTable({ holders, skip, currentSort, currentOrder
             </tr>
           </thead>
           <tbody className="divide-y divide-orange-100 dark:divide-slate-800">
-            {holders.map((holder, index) => (
+            {holders.map((holder: any, index: number) => (
               <tr key={holder.address} className="hover:bg-orange-50 dark:hover:bg-slate-800/30 transition-colors">
                 <td className="px-6 py-4 text-slate-500 dark:text-slate-500 font-mono">{skip + index + 1}</td>
                 <td className="px-6 py-4">

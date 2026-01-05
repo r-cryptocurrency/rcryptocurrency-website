@@ -39,7 +39,7 @@ async function checkBalance(address: string) {
       abi: [BALANCE_ABI],
       functionName: 'balanceOf',
       args: [address as `0x${string}`]
-    });
+    } as any);
     console.log(`Nova Balance: ${Number(novaBal) / 1e18}`);
   } catch (e) {
     console.error('Nova Error:', e);
@@ -51,7 +51,7 @@ async function checkBalance(address: string) {
       abi: [BALANCE_ABI],
       functionName: 'balanceOf',
       args: [address as `0x${string}`]
-    });
+    } as any);
     console.log(`One Balance: ${Number(oneBal) / 1e18}`);
   } catch (e) {
     console.error('One Error:', e);

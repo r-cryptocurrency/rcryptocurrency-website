@@ -35,7 +35,7 @@ export default async function ScraperPage({ searchParams }: { searchParams: { ra
     select: { createdUtc: true, sentiment: true, title: true }
   });
 
-  const chartData = sentimentPosts.map(p => ({
+  const chartData = sentimentPosts.map((p: any) => ({
     date: range === '24h' 
       ? new Date(p.createdUtc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : new Date(p.createdUtc).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit' }),
@@ -49,7 +49,7 @@ export default async function ScraperPage({ searchParams }: { searchParams: { ra
     take: 10
   });
 
-  const mentionData = mentions.map(m => ({
+  const mentionData = mentions.map((m: any) => ({
     name: m.projectId,
     value: m._count.projectId
   }));
@@ -69,7 +69,7 @@ export default async function ScraperPage({ searchParams }: { searchParams: { ra
               </div>
               <div className="p-6">
                 <div className="space-y-3">
-                  {mentions.map((m) => (
+                  {mentions.map((m: any) => (
                     <div key={m.projectId} className="flex items-center justify-between group">
                       <span className="font-medium text-slate-700 dark:text-gray-300 group-hover:text-rcc-orange transition-colors">{m.projectId}</span>
                       <span className="bg-rcc-orange/10 text-rcc-orange font-bold px-3 py-1 rounded-full text-sm">
@@ -132,7 +132,7 @@ export default async function ScraperPage({ searchParams }: { searchParams: { ra
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-orange-100 dark:divide-white/10">
-                  {posts.map((post) => (
+                  {posts.map((post: any) => (
                     <tr key={post.id} className="hover:bg-orange-50 dark:hover:bg-white/5 transition-colors">
                       <td className="px-4 py-3">
                         <a 
@@ -160,7 +160,7 @@ export default async function ScraperPage({ searchParams }: { searchParams: { ra
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
-                          {post.mentions.map(m => (
+                          {post.mentions.map((m: any) => (
                             <span key={m.id} className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs px-2 py-0.5 rounded border border-slate-200 dark:border-slate-600 shadow-sm font-medium">
                               {m.projectId}
                             </span>

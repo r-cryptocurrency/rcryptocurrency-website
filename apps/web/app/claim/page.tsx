@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { formatUnits } from 'viem';
-import { MOON_DISTRIBUTOR_ABI, DISTRIBUTOR_CONTRACTS } from '@repo/chain-data';
+import { MOON_DISTRIBUTOR_ABI, DISTRIBUTOR_CONTRACTS } from '@rcryptocurrency/chain-data';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 interface Claim {
@@ -131,7 +131,7 @@ export default function ClaimPage() {
               </div>
             ) : (
               <div className="grid gap-4">
-                {claims.map((claim) => (
+                {claims.map((claim: any) => (
                   <ClaimRow 
                     key={`${claim.roundId}-${claim.index}`} 
                     claim={claim} 
@@ -180,7 +180,7 @@ function ClaimRow({
         BigInt(claim.index),
         claim.address as `0x${string}`,
         BigInt(claim.amount),
-        claim.proof as `0x${string}[]`,
+        claim.proof as unknown as `0x${string}[]`,
       ],
     });
   };
