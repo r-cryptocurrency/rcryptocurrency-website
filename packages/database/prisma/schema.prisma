@@ -37,13 +37,14 @@ model LiquiditySnapshot {
 }
 
 model RedditUser {
-  username       String       @id
-  rawUpvotes     Int          @default(0)
-  estimatedKarma Float        @default(0)
-  earnedMoons    Float        @default(0)
-  lastScraped    DateTime     @updatedAt
+  username       String           @id
+  rawUpvotes     Int              @default(0)
+  estimatedKarma Float            @default(0)
+  earnedMoons    Float            @default(0)
+  lastScraped    DateTime         @updatedAt
   holders        Holder[]
   submissions    Submission[]
+  addressLink    UserAddressLink?
 }
 
 model MarketStat {
@@ -188,4 +189,51 @@ model KarmaEntry {
   @@unique([roundId, username])
   @@index([roundId, totalKarma(sort: Desc)])
   @@index([username])
+}
+
+// Verified Reddit username <-> ETH address links for distributions
+model UserAddressLink {
+  id         Int        @id @default(autoincrement())
+  username   String     @unique // Reddit username (without u/)
+  address    String     // ETH address (checksummed)
+  linkedAt   DateTime   @default(now())
+  verifiedAt DateTime   @default(now())
+
+  // Relation to existing RedditUser if exists
+  user       RedditUser? @relation(fields: [username], references: [username])
+
+  @@index([address])
+  @@index([username])
+}
+
+// Distribution rounds with Merkle roots
+model DistributionRound {
+  id              Int       @id // Matches KarmaRound id
+  merkleRoot      String    // 0x... hex string
+  totalAmount     String    // BigInt as string for precision
+  tokenAddress    String    // MOON contract address
+  chainId         Int       // 42170 for Arbitrum Nova
+  contractAddress String    // MoonDistributor contract address
+  claimsJson      String?   // JSON filename or IPFS hash
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  expirationDate  DateTime
+
+  @@index([isActive])
+}
+
+// Track individual claims (for UI status, contract is source of truth)
+model DistributionClaim {
+  id        Int      @id @default(autoincrement())
+  roundId   Int
+  username  String
+  address   String
+  amount    String   // BigInt as string
+  index     Int      // Merkle tree leaf index
+  claimedAt DateTime?
+  txHash    String?
+
+  @@unique([roundId, username])
+  @@index([roundId])
+  @@index([address])
 }

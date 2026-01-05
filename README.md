@@ -11,16 +11,18 @@ The project is built as a **Monorepo** using [pnpm workspaces](https://pnpm.io/w
 ```
 rcryptocurrency-site/
 ├── apps/
-│   ├── web/              # Next.js 13 Frontend Dashboard
+│   ├── web/              # Next.js 14 Frontend (Wagmi/RainbowKit/Prisma)
 │   ├── ledger/           # Blockchain Indexer + Monitor (Viem)
 │   ├── oracle/           # Market Data + Reddit Stats (Kraken/Pool/CoinGecko)
-│   └── scraper/          # Reddit Scraper (Public JSON + NLP)
+│   └── scraper/          # Reddit Scraper + Merkle Tree Generator
 ├── packages/
-│   ├── chain-data/       # Shared Blockchain Constants (ABIs, Addresses)
+│   ├── chain-data/       # Smart Contracts (Solidity) & EVM Constants
 │   ├── database/         # Shared Prisma Schema & Client (PostgreSQL)
 │   ├── ui/               # Shared React Components (Tailwind)
 │   ├── tsconfig/         # Shared TypeScript Configs
 │   └── eslint-config/    # Shared Linting Rules
+├── data/
+│   └── distributions/    # Merkle trees, claims, and summaries (Generated)
 └── notes/                # Research notes and Python prototypes
 ```
 
@@ -29,13 +31,14 @@ rcryptocurrency-site/
 ## 🚀 Applications
 
 ### 1. Web Dashboard (`apps/web`)
-- **Tech**: Next.js 13, Tailwind CSS, Tremor
+- **Tech**: Next.js 14, Tailwind CSS, Tremor, Wagmi v2
 - **Features**:
-  - Dark/light theme with persistent preference
+  - **Wallet Integration**: Unified connection via RainbowKit for linking and claiming.
+  - **Link Address**: Secure Reddit-to-ETH link via comment verification.
+  - **Claim Center**: Trustless Merkle-based claiming for MOON distributions.
   - **Richlist**: Top MOON holders with address labels (exchanges, bridges, etc.)
   - **Burns**: Real-time tracking across all chains (Nova, One, ETH)
   - **Swaps**: Live DEX swap feed (SushiSwap, Camelot, Uniswap)
-  - **Scraper**: Karma leaderboard with dynamic Moon round calculation
   - **Stats**: Market data, subreddit stats, timeline
   - **2024/2025 Constitution**: Governance documents
 
@@ -69,12 +72,50 @@ rcryptocurrency-site/
 - **Reddit Stats**: Subscriber count, active users via public JSON
 
 ### 4. Scraper (`apps/scraper`)
-- **Tech**: Node.js, Axios, Natural (NLP)
-- **Function**: Scrapes r/CryptoCurrency for karma tracking
-- **Features**:
-  - Public JSON API (no OAuth needed)
-  - Sentiment analysis on posts
-  - Project mention tracking
+- **Tech**: Node.js, Axios, Natural (NLP), OpenZeppelin Merkle Tree
+- **Function**: Scrapes r/CryptoCurrency for karma tracking and generates distribution snapshots.
+- **Core Scripts**:
+  | Script | Purpose |
+  |--------|---------|
+  | `recalc-karma` | Recalculate karma scores for a specific round |
+  | `export-karma` | Export karma scores to CSV for auditing |
+  | `generate-merkle`| Generate Merkle Tree and claims JSON for a distribution round |
+
+---
+
+## 🌙 Decentralized MOON Distribution
+
+The distribution system allows users to trustlessly claim MOONs based on their subreddit karma.
+
+### 1. Verification Flow (User)
+- **Link**: User connects wallet on `/link` and verifies their Reddit username by posting a generated code as a Reddit comment.
+- **Sync**: The system verifies the comment and links the address in the DB. This address is now the "active" distribution address for that user.
+
+### 2. Distribution Lifecycle (Admin/DAO)
+#### A. Finalize Karma
+Recalculate and audit karma for the round:
+```bash
+pnpm --filter scraper run export-karma <round_id>
+```
+
+#### B. Generate Merkle Tree
+Generate the cryptographic root and individual user proofs.
+```bash
+# Example: Round 70 at 0.05 MOON per karma point
+pnpm --filter scraper run generate-merkle 70 0.05
+```
+This generates files in `data/distributions/`:
+- `round-70-summary.json`: Contains the `merkleRoot` and `totalAmount`.
+- `round-70-claims.json`: Individual proofs for the frontend.
+
+#### C. Create On-Chain Distribution
+Load the data into the `MoonDistributor` contract (Arbitrum One):
+1. Call `createDistribution(roundId, merkleRoot, tokenAddress, totalAmount, durationDays)`.
+2. Ensure you have transferred the required MOON `totalAmount` to the contract.
+
+#### D. Claim & Sweep
+- **Claim**: Users visit `/claim` to submit their proof and receive tokens.
+- **Sweep**: After the `durationDays` (e.g., 90) expires, the owner can call `sweep(roundId)` to return unclaimed tokens to the treasury.
 
 ---
 
@@ -122,8 +163,10 @@ TELEGRAM_BOT_TOKEN=your_bot_token
 TELEGRAM_CHANNEL_ID=@your_channel
 MOON_NOTIFICATION_THRESHOLD=50
 
-# Optional: CoinGecko API (only used as last resort fallback)
-# COINGECKO_API_KEY=your_key
+# Distribution Deployment
+DEPLOYER_PRIVATE_KEY=0x...your_funding_wallet_private_key
+ARBISCAN_API_KEY=your_key
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_id
 ```
 
 ### 3. Database Setup
@@ -200,6 +243,8 @@ pm2 set pm2-logrotate:rotateInterval '0 0 * * *'
 | Health check | `pnpm --filter @rcryptocurrency/ledger run health-check` |
 | Monitor (realtime) | `pnpm --filter @rcryptocurrency/ledger run monitor-moons` |
 | Seed labels | `pnpm --filter @rcryptocurrency/ledger run seed-labels` |
+| Generate Merkle | `pnpm --filter scraper run generate-merkle <round> <rate>` |
+| Deploy Distributor | `pnpm --filter @rcryptocurrency/chain-data run deploy:nova` |
 | DB Studio | `pnpm --filter @rcryptocurrency/database db:studio` |
 
 ### Database Management

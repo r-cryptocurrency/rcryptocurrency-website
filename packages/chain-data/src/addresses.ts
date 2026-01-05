@@ -1,3 +1,7 @@
+export const DISTRIBUTOR_CONTRACTS = {
+  arbitrumOne: "0x0000000000000000000000000000000000000000", // TODO: Update after deployment
+} as const;
+
 export const MOON_CONTRACTS = {
   arbitrumNova: "0x0057Ac2d777797d31CD3f8f13bF5e927571D6Ad0",
   arbitrumOne: "0x24404DC041d74cd03cFE28855F555559390C931b",

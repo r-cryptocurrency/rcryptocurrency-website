@@ -67,6 +67,8 @@ export default function Navbar() {
         <div className="flex flex-col items-center justify-center min-h-screen space-y-8 p-8 overflow-y-auto">
           <NavLink href="/" label="Home" emoji="🏠" onClick={() => setIsOpen(false)} />
           <NavLink href="/#timeline" label="Timeline" emoji="⏳" onClick={() => setIsOpen(false)} />
+          <NavLink href="/link" label="Link Wallet" emoji="🔗" onClick={() => setIsOpen(false)} />
+          <NavLink href="/claim" label="Claim Moons" emoji="🎁" onClick={() => setIsOpen(false)} />
           <NavLink href="/stats" label="Stats" emoji="📊" onClick={() => setIsOpen(false)} />
           <NavLink href="/leaderboard" label="Leaderboard" emoji="🏆" onClick={() => setIsOpen(false)} />
           <NavLink href="/richlist" label="Richlist" emoji="💰" onClick={() => setIsOpen(false)} />
