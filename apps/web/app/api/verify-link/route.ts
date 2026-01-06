@@ -13,14 +13,89 @@ function parseRedditUrl(url: string): { threadId: string; commentId: string } | 
   // https://www.reddit.com/r/CryptoCurrency/comments/abc123/title/def456/
   // https://reddit.com/r/CryptoCurrency/comments/abc123/title/def456
   // https://old.reddit.com/r/CryptoCurrency/comments/abc123/title/def456/
+  // https://www.reddit.com/r/CryptoCurrency/comments/abc123/comment/def456/ (new Reddit share format)
 
-  const match = url.match(/reddit\.com\/r\/\w+\/comments\/(\w+)\/[^/]+\/(\w+)/);
-  if (!match) return null;
+  // Try standard format with title slug
+  let match = url.match(/reddit\.com\/r\/\w+\/comments\/(\w+)\/[^/]+\/(\w+)/);
+  if (match) {
+    return { threadId: match[1], commentId: match[2] };
+  }
 
-  return {
-    threadId: match[1],
-    commentId: match[2],
-  };
+  // Try format without title (some share links)
+  match = url.match(/reddit\.com\/r\/\w+\/comments\/(\w+)\/(\w+)/);
+  if (match) {
+    return { threadId: match[1], commentId: match[2] };
+  }
+
+  return null;
+}
+
+// Extract ETH address from comment text, handling Reddit's formatting
+// Handles: backticks, code blocks, quotes, markdown, inline text, etc.
+function extractEthAddress(text: string, targetAddress: string): boolean {
+  const targetLower = targetAddress.toLowerCase();
+
+  // First try direct match (case-insensitive)
+  if (text.toLowerCase().includes(targetLower)) {
+    return true;
+  }
+
+  // Extract all potential ETH addresses from text using regex
+  // This handles addresses wrapped in backticks, code blocks, quotes, etc.
+  const ethAddressRegex = /0x[a-fA-F0-9]{40}/g;
+  const foundAddresses = text.match(ethAddressRegex) || [];
+
+  return foundAddresses.some(addr => addr.toLowerCase() === targetLower);
+}
+
+// Fetch comment with retries (Reddit caching can delay new comments)
+async function fetchCommentWithRetry(
+  url: string,
+  maxRetries: number = 3,
+  delayMs: number = 5000
+): Promise<{ data: any; error?: string; status?: number }> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const redditRes = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; r/CryptoCurrency-Verifier/1.0)',
+        },
+        cache: 'no-store',
+      });
+
+      if (redditRes.status === 429) {
+        return { data: null, error: 'Reddit rate limited. Please try again in a minute.', status: 429 };
+      }
+
+      if (!redditRes.ok) {
+        // If not found and we have retries left, wait and try again
+        if (redditRes.status === 404 && attempt < maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+          continue;
+        }
+        return { data: null, error: 'Failed to fetch comment from Reddit. Check the URL.', status: 400 };
+      }
+
+      const data = await redditRes.json();
+      const commentData = data[1]?.data?.children?.[0]?.data;
+
+      // If comment data not found in response, retry (Reddit sometimes returns empty)
+      if (!commentData && attempt < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        continue;
+      }
+
+      return { data: commentData };
+    } catch (err) {
+      if (attempt < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        continue;
+      }
+      return { data: null, error: 'Network error fetching from Reddit.', status: 500 };
+    }
+  }
+
+  return { data: null, error: 'Comment not found after multiple attempts. Please wait a moment and try again.', status: 404 };
 }
 
 export async function POST(req: NextRequest) {
@@ -48,37 +123,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fetch comment from Reddit's public JSON API
+    // Fetch comment from Reddit's public JSON API (with retries for new comments)
     const redditUrl = `https://www.reddit.com/comments/${parsed.threadId}/_/${parsed.commentId}.json`;
 
-    const redditRes = await fetch(redditUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; r/CryptoCurrency-Verifier/1.0)',
-      },
-      next: { revalidate: 0 }, // Don't cache
-    });
+    const { data: commentData, error: fetchError, status: fetchStatus } = await fetchCommentWithRetry(redditUrl);
 
-    if (!redditRes.ok) {
-      if (redditRes.status === 429) {
-        return NextResponse.json(
-          { error: 'Reddit rate limited. Please try again in a minute.' },
-          { status: 429 }
-        );
-      }
-      return NextResponse.json(
-        { error: 'Failed to fetch comment from Reddit. Check the URL.' },
-        { status: 400 }
-      );
+    if (fetchError) {
+      return NextResponse.json({ error: fetchError }, { status: fetchStatus || 400 });
     }
-
-    const data = await redditRes.json();
-
-    // Reddit returns array: [thread, comments]
-    const commentData = data[1]?.data?.children?.[0]?.data;
 
     if (!commentData) {
       return NextResponse.json(
-        { error: 'Comment not found. It may have been deleted.' },
+        { error: 'Comment not found. It may have been deleted or not yet visible. Please wait a moment and try again.' },
         { status: 404 }
       );
     }
@@ -87,8 +143,15 @@ export async function POST(req: NextRequest) {
     const commentBody = commentData.body || '';
     const subreddit = commentData.subreddit?.toLowerCase();
 
-    // Validate subreddit - must be cryptocurrencymoons (or allow main sub for flexibility, but instruction says cryptocurrencymoons)
-    // The TODO-distribution.md says r/CryptoCurrencyMoons
+    // Check if user account is deleted
+    if (!redditUsername || redditUsername === '[deleted]' || redditUsername === '[removed]') {
+      return NextResponse.json(
+        { error: 'Cannot verify: the comment author appears to be deleted.' },
+        { status: 400 }
+      );
+    }
+
+    // Validate subreddit - must be cryptocurrencymoons
     if (subreddit !== 'cryptocurrencymoons') {
       return NextResponse.json(
         { error: 'Comment must be in r/CryptoCurrencyMoons. Please post there and try again.' },
@@ -97,9 +160,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if comment body contains the connected address
-    if (!commentBody.toLowerCase().includes(addressLower)) {
+    // Uses flexible extraction to handle Reddit formatting (backticks, code blocks, etc.)
+    if (!extractEthAddress(commentBody, checksummedAddress)) {
       return NextResponse.json(
-        { error: `Comment does not contain your address: ${checksummedAddress}` },
+        { error: `Comment does not contain your address: ${checksummedAddress}. Make sure you copied the full address.` },
         { status: 400 }
       );
     }

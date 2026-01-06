@@ -105,7 +105,7 @@ export default function LinkAddressPage() {
                   >
                     r/CryptoCurrencyMoons
                   </a>{' '}
-                  and post a comment containing ONLY your address (any thread works)
+                  and post a comment containing your address (any thread works)
                 </li>
                 <li>
                   Right-click your comment and copy the "Share" or "Permalink" link
@@ -144,7 +144,15 @@ export default function LinkAddressPage() {
                          disabled:cursor-not-allowed py-3 rounded-lg font-semibold
                          transition-colors"
             >
-              {status === 'loading' ? 'Verifying...' : 'Verify Link'}
+              {status === 'loading' ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Verifying (this may take 15-20 seconds)...
+                </span>
+              ) : 'Verify Link'}
             </button>
 
             {/* Result Messages */}
