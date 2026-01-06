@@ -49,7 +49,7 @@ export default function LinkAddressPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-gray-950 text-white pt-24">
       <div className="max-w-2xl mx-auto px-4 py-12">
         <h1 className="text-3xl font-bold text-center mb-2">
           Link Reddit to Ethereum
