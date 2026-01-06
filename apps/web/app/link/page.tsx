@@ -22,6 +22,18 @@ export default function LinkAddressPage() {
   const [commentUrl, setCommentUrl] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [result, setResult] = useState<VerifyResult | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const copyAddress = async () => {
+    if (!address) return;
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   const handleVerify = async () => {
     if (!isConnected || !address || !commentUrl.trim()) return;
@@ -89,11 +101,22 @@ export default function LinkAddressPage() {
             <div>
               <h2 className="text-xl font-semibold mb-4">Instructions</h2>
               <ol className="list-decimal list-inside space-y-3 text-gray-300">
-                <li>
-                  Copy your wallet address:
-                  <code className="ml-2 bg-gray-800 px-2 py-1 rounded text-sm text-orange-400 break-all">
-                    {address}
-                  </code>
+                <li className="flex flex-wrap items-center gap-2">
+                  <span>Copy your wallet address:</span>
+                  <button
+                    onClick={copyAddress}
+                    className="relative bg-gray-800 px-2 py-1 rounded text-sm text-orange-400 break-all
+                               hover:bg-gray-700 cursor-pointer transition-colors"
+                    title="Click to copy"
+                  >
+                    <code>{address}</code>
+                    {copied && (
+                      <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-green-600 text-white
+                                       text-xs px-2 py-1 rounded whitespace-nowrap">
+                        Copied!
+                      </span>
+                    )}
+                  </button>
                 </li>
                 <li>
                   Go to{' '}
