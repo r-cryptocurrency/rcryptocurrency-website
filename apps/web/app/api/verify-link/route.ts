@@ -169,47 +169,66 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if this address is already linked to a different distribution user
-    const existingByAddress = await prisma.userAddressLink.findFirst({
-      where: { address: checksummedAddress },
+    // Use lowercase for consistent lookups (addresses are stored lowercase in UserAddressLink)
+    const existingDistroLink = await prisma.userAddressLink.findFirst({
+      where: { address: addressLower },
     });
 
-    if (existingByAddress && existingByAddress.username !== redditUsername) {
+    if (existingDistroLink && existingDistroLink.username.toLowerCase() !== redditUsername.toLowerCase()) {
       return NextResponse.json(
         { error: 'This address is already linked to another Reddit account for distributions.' },
         { status: 409 }
       );
     }
 
-    // 1. Transaction to update both tables
+    // Check if address exists in Holder table with a DIFFERENT username
+    // This protects existing ledger relationships (e.g., from CSV imports)
+    const existingHolder = await prisma.holder.findUnique({
+      where: { address: addressLower },
+    });
+
+    if (existingHolder?.username && existingHolder.username.toLowerCase() !== redditUsername.toLowerCase()) {
+      return NextResponse.json(
+        { error: `This address is already associated with Reddit user u/${existingHolder.username} in our records. If this is your address, please contact support.` },
+        { status: 409 }
+      );
+    }
+
+    // Ensure RedditUser exists first (UserAddressLink has FK to RedditUser)
+    await prisma.redditUser.upsert({
+      where: { username: redditUsername },
+      update: {},
+      create: {
+        username: redditUsername,
+        earnedMoons: 0,
+      },
+    });
+
+    // Now create the links in a transaction
+    // Note: Store addresses in lowercase for consistency across the system
     await prisma.$transaction([
-      // Upsert the distribution link (One per user)
+      // Upsert the distribution link (One per user - for MOON distributions)
       prisma.userAddressLink.upsert({
         where: { username: redditUsername },
         update: {
-          address: checksummedAddress,
+          address: addressLower,  // Store lowercase for consistency
           verifiedAt: new Date(),
         },
         create: {
           username: redditUsername,
-          address: checksummedAddress,
-        },
-      }),
-
-      // Also ensure the RedditUser exists (if not already)
-      prisma.redditUser.upsert({
-        where: { username: redditUsername },
-        update: {},
-        create: { 
-          username: redditUsername,
-          earnedMoons: 0,
+          address: addressLower,  // Store lowercase for consistency
         },
       }),
 
       // Create/update Holder for Oracle/Ledger purposes
+      // Only set username if it's not already set (preserve existing relationships)
+      // or if it matches the current user (re-verification)
       prisma.holder.upsert({
         where: { address: addressLower },
         update: {
-          username: redditUsername,
+          // Only update username if holder has no username yet
+          // This preserves existing CSV-imported relationships
+          ...(existingHolder?.username ? {} : { username: redditUsername }),
         },
         create: {
           address: addressLower,

@@ -43,9 +43,10 @@ async function main() {
   console.log(`Found ${karmaEntries.length} karma entries`);
 
   // 2. Get all verified address links
+  // Store addresses in lowercase for consistency
   const addressLinks = await prisma.userAddressLink.findMany();
   const usernameToAddress = new Map(
-    addressLinks.map(link => [link.username.toLowerCase(), link.address])
+    addressLinks.map(link => [link.username.toLowerCase(), link.address.toLowerCase()])
   );
 
   console.log(`Found ${addressLinks.length} verified address links`);
