@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { prisma } from '@rcryptocurrency/database';
 import { analyzeSentiment, findProjectMentions } from './analyzer';
-import { updateKarmaForUser, getOrCreateCurrentRound, getRoundForDate, getRoundDates } from './karma';
+import { updateKarmaForUser, getRoundForDate } from './karma';
 
 const USER_AGENT = 'Reddit-Scraper/1.0 (by /u/TheMoonDistributor)';
 const SUBREDDIT = 'CryptoCurrency';
@@ -83,13 +83,23 @@ export async function runScraper(sortType: 'new' | 'hot' | 'top' = 'new') {
       const mentions = findProjectMentions(post.title + ' ' + (post.selftext || ''));
 
       try {
-        // Check if post already exists to calculate karma delta
+        // Check if post already exists to calculate karma delta and check if already counted
         const existingPost = await prisma.redditPost.findUnique({
           where: { id: post.id },
-          select: { score: true }
+          select: { score: true, karmaCountedRound: true }
         });
         const oldScore = existingPost?.score || 0;
         const scoreChange = post.score - oldScore;
+
+        const postDate = new Date(post.created_utc * 1000);
+        const currentRound = getRoundForDate(new Date());
+        const postRound = getRoundForDate(postDate);
+
+        // A post should only count for the round it was created in
+        // needsCountIncrement = true if post is in current round AND we haven't counted it yet
+        const isInCurrentRound = postRound === currentRound;
+        const alreadyCounted = existingPost?.karmaCountedRound === postRound;
+        const needsCountIncrement = isInCurrentRound && !alreadyCounted;
 
         await upsertWithRetry(() => prisma.redditPost.upsert({
           where: { id: post.id },
@@ -97,6 +107,8 @@ export async function runScraper(sortType: 'new' | 'hot' | 'top' = 'new') {
             score: post.score,
             numComments: post.num_comments,
             updatedAt: new Date(),
+            // Mark as counted for this round when we increment the count
+            ...(needsCountIncrement ? { karmaCountedRound: postRound } : {})
           },
           create: {
             id: post.id,
@@ -109,6 +121,8 @@ export async function runScraper(sortType: 'new' | 'hot' | 'top' = 'new') {
             flair: post.link_flair_text,
             numComments: post.num_comments,
             sentiment: sentiment,
+            // Mark as counted for its round on creation
+            karmaCountedRound: postRound,
             mentions: {
               create: mentions.map(m => ({
                 projectId: m,
@@ -118,18 +132,13 @@ export async function runScraper(sortType: 'new' | 'hot' | 'top' = 'new') {
           }
         }));
 
-        // Track karma for current round (only new posts or score changes)
-        const postDate = new Date(post.created_utc * 1000);
-        const currentRound = getRoundForDate(new Date());
-        const postRound = getRoundForDate(postDate);
-        
         // Only track karma for posts in current round
-        if (postRound === currentRound && post.author && post.author !== '[deleted]') {
-          if (!existingPost) {
-            // New post - record full score AND increment count
+        if (isInCurrentRound && post.author && post.author !== '[deleted]') {
+          if (needsCountIncrement) {
+            // First time counting this post - use full score and increment count
             await updateKarmaForUser(post.author, post.score, false, true);
           } else if (scoreChange !== 0) {
-            // Existing post - record delta only (don't increment count)
+            // Already counted, just update karma delta
             await updateKarmaForUser(post.author, scoreChange, false, false);
           }
         }
@@ -153,19 +162,30 @@ export async function runScraper(sortType: 'new' | 'hot' | 'top' = 'new') {
           const cSentiment = analyzeSentiment(comment.body);
           const cMentions = findProjectMentions(comment.body);
 
-          // Check if comment exists to calculate karma delta
+          // Check if comment exists to calculate karma delta and check if already counted
           const existingComment = await prisma.redditComment.findUnique({
             where: { id: comment.id },
-            select: { score: true }
+            select: { score: true, karmaCountedRound: true }
           });
           const oldCommentScore = existingComment?.score || 0;
           const commentScoreChange = comment.score - oldCommentScore;
+
+          const commentDate = new Date(comment.created_utc * 1000);
+          const currentRound = getRoundForDate(new Date());
+          const commentRound = getRoundForDate(commentDate);
+
+          // A comment should only count for the round it was created in
+          const isInCurrentRound = commentRound === currentRound;
+          const alreadyCounted = existingComment?.karmaCountedRound === commentRound;
+          const needsCountIncrement = isInCurrentRound && !alreadyCounted;
 
           await upsertWithRetry(() => prisma.redditComment.upsert({
             where: { id: comment.id },
             update: {
               score: comment.score,
-              updatedAt: new Date()
+              updatedAt: new Date(),
+              // Mark as counted for this round when we increment the count
+              ...(needsCountIncrement ? { karmaCountedRound: commentRound } : {})
             },
             create: {
               id: comment.id,
@@ -175,6 +195,8 @@ export async function runScraper(sortType: 'new' | 'hot' | 'top' = 'new') {
               score: comment.score,
               createdUtc: new Date(comment.created_utc * 1000),
               sentiment: cSentiment,
+              // Mark as counted for its round on creation
+              karmaCountedRound: commentRound,
               mentions: {
                 create: cMentions.map(m => ({
                   projectId: m,
@@ -185,16 +207,12 @@ export async function runScraper(sortType: 'new' | 'hot' | 'top' = 'new') {
           }));
 
           // Track comment karma for current round
-          const commentDate = new Date(comment.created_utc * 1000);
-          const currentRound = getRoundForDate(new Date());
-          const commentRound = getRoundForDate(commentDate);
-          
-          if (commentRound === currentRound && comment.author && comment.author !== '[deleted]') {
-            if (!existingComment) {
-              // New comment - record full score AND increment count
+          if (isInCurrentRound && comment.author && comment.author !== '[deleted]') {
+            if (needsCountIncrement) {
+              // First time counting this comment - use full score and increment count
               await updateKarmaForUser(comment.author, comment.score, true, true);
             } else if (commentScoreChange !== 0) {
-              // Existing comment - record delta only (don't increment count)
+              // Already counted, just update karma delta
               await updateKarmaForUser(comment.author, commentScoreChange, true, false);
             }
           }

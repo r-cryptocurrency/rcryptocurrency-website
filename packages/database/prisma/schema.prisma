@@ -73,37 +73,39 @@ model Submission {
 }
 
 model RedditPost {
-  id          String           @id
-  title       String
-  author      String
-  score       Int
-  url         String
-  createdUtc  DateTime
-  selftext    String?
-  flair       String?
-  numComments Int
-  sentiment   Float?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  mentions    ProjectMention[]
-  comments    RedditComment[]
+  id              String           @id
+  title           String
+  author          String
+  score           Int
+  url             String
+  createdUtc      DateTime
+  selftext        String?
+  flair           String?
+  numComments     Int
+  sentiment       Float?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  karmaCountedRound Int?           // Track which round this post's count was recorded for
+  mentions        ProjectMention[]
+  comments        RedditComment[]
 
   @@index([createdUtc])
   @@index([author])
 }
 
 model RedditComment {
-  id         String           @id
-  postId     String
-  author     String
-  body       String
-  score      Int
-  createdUtc DateTime
-  sentiment  Float?
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
-  mentions   ProjectMention[]
-  post       RedditPost       @relation(fields: [postId], references: [id])
+  id                String           @id
+  postId            String
+  author            String
+  body              String
+  score             Int
+  createdUtc        DateTime
+  sentiment         Float?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  karmaCountedRound Int?             // Track which round this comment's count was recorded for
+  mentions          ProjectMention[]
+  post              RedditPost       @relation(fields: [postId], references: [id])
 
   @@index([createdUtc])
   @@index([author])

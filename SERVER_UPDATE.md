@@ -2,7 +2,46 @@
 
 This file tracks the commands and steps required to update the production server following the major security upgrade (TS 5.4.5, Viem 2.x, Prisma 5) and the rollout of the decentralized MOON distribution system.
 
-## ⚠️ CRITICAL: Security & Core Dependencies (MANDATORY)
+## ⚠️ CRITICAL: Karma Count Bug Fix (January 6, 2026)
+
+### Updated: January 6, 2026
+
+Fixed a bug where post/comment counts were not being tracked correctly on the leaderboard. The issue was that counts were only incremented when a post/comment was first seen in the database, but not tracked per-round. This caused users to show karma but 0 counts after round transitions.
+
+**What changed:**
+- Added `karmaCountedRound` field to `RedditPost` and `RedditComment` tables
+- Updated scraper to track which round each post/comment has been counted for
+- Counts now correctly increment once per round, per post/comment
+
+**To deploy this fix:**
+
+```bash
+# 1. Force pull (discard local lockfile changes)
+git fetch origin
+git reset --hard origin/master
+
+# 2. Install dependencies
+pnpm install
+
+# 3. Regenerate Prisma Client (picks up new karmaCountedRound field)
+pnpm --filter @rcryptocurrency/database db:generate
+
+# 4. Apply schema changes to database
+pnpm --filter @rcryptocurrency/database db:push
+
+# 5. Fix Round 71 data (recalculates counts from actual posts/comments)
+pnpm --filter scraper recalc-karma 71
+
+# 6. Rebuild everything
+pnpm build
+
+# 7. Restart services
+pm2 reload ecosystem.config.js
+```
+
+---
+
+## ⚠️ Security & Core Dependencies (January 5, 2026)
 
 ### Updated: January 5, 2026
 
@@ -25,7 +64,7 @@ pnpm --filter @rcryptocurrency/database db:generate
 
 ### Updated: January 5, 2026
 
-Run the following commands to apply the new schema models (`UserAddressLink`, `DistributionRound`, and `DistributionClaim`) and update the `RedditUser` model to accommodate the new distribution system.
+Run the following commands to apply the new schema models (`UserAddressLink`, `DistributionRound`, `DistributionClaim`, and karma tracking fields) and update the `RedditUser` model to accommodate the new distribution system.
 
 ```bash
 # Navigate to the root of the project
