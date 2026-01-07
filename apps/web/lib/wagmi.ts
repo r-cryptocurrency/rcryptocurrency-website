@@ -1,22 +1,17 @@
 import { http, createConfig } from 'wagmi';
-import { arbitrumNova } from 'wagmi/chains';
+import { arbitrum, polygon } from 'wagmi/chains';
 import { injected } from 'wagmi/connectors';
 
-// Custom Arbitrum Nova chain with public RPC
-const arbitrumNovaCustom = {
-  ...arbitrumNova,
-  rpcUrls: {
-    default: { http: ['https://nova.arbitrum.io/rpc'] },
-  },
-} as const;
-
+// Arbitrum One is the primary chain for MOON distributions
+// Polygon is available for potential POL rewards
 export const config = createConfig({
-  chains: [arbitrumNovaCustom],
+  chains: [arbitrum, polygon],
   connectors: [
     injected(), // Supports MetaMask, Coinbase Wallet, Brave, etc.
   ],
   transports: {
-    [arbitrumNovaCustom.id]: http('https://nova.arbitrum.io/rpc'),
+    [arbitrum.id]: http('https://arb1.arbitrum.io/rpc'),
+    [polygon.id]: http('https://polygon-rpc.com'),
   },
   ssr: true,
 });
