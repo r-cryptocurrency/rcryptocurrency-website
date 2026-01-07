@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { injected } from 'wagmi/connectors';
 
@@ -14,6 +14,13 @@ interface VerifyResult {
   error?: string;
 }
 
+interface LinkStatus {
+  isLinked: boolean;
+  username: string | null;
+  linkedAt: string | null;
+  currentDistroAddress: string | null;
+}
+
 export default function LinkAddressPage() {
   const { address, isConnected } = useAccount();
   const { connect, isPending: isConnecting } = useConnect();
@@ -23,6 +30,32 @@ export default function LinkAddressPage() {
   const [status, setStatus] = useState<Status>('idle');
   const [result, setResult] = useState<VerifyResult | null>(null);
   const [copied, setCopied] = useState(false);
+  const [linkStatus, setLinkStatus] = useState<LinkStatus | null>(null);
+  const [checkingStatus, setCheckingStatus] = useState(false);
+
+  // Check existing link status when address changes
+  useEffect(() => {
+    if (address) {
+      setCheckingStatus(true);
+      fetch(`/api/link-status/${address}`)
+        .then(res => res.json())
+        .then(data => setLinkStatus(data))
+        .catch(() => setLinkStatus(null))
+        .finally(() => setCheckingStatus(false));
+    } else {
+      setLinkStatus(null);
+    }
+  }, [address]);
+
+  // Refresh link status after successful verification
+  useEffect(() => {
+    if (status === 'success' && address) {
+      fetch(`/api/link-status/${address}`)
+        .then(res => res.json())
+        .then(data => setLinkStatus(data))
+        .catch(() => {});
+    }
+  }, [status, address]);
 
   const copyAddress = async () => {
     if (!address) return;
@@ -97,6 +130,48 @@ export default function LinkAddressPage() {
 
         {isConnected && (
           <div className="bg-gray-900 rounded-xl p-6 space-y-6">
+            {/* Current Link Status */}
+            {checkingStatus ? (
+              <div className="bg-gray-800 rounded-lg p-4 text-center">
+                <span className="text-gray-400">Checking link status...</span>
+              </div>
+            ) : linkStatus?.isLinked ? (
+              <div className="bg-green-900/30 border border-green-600 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-green-400 font-semibold">Address Already Linked</span>
+                </div>
+                <p className="text-gray-300">
+                  This address is linked to <span className="text-orange-400 font-mono">u/{linkStatus.username}</span>
+                </p>
+                <p className="text-gray-400 text-sm mt-2">
+                  You can re-link to update your distribution address if needed.
+                </p>
+              </div>
+            ) : linkStatus?.username ? (
+              <div className="bg-yellow-900/30 border border-yellow-600 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-yellow-400 font-semibold">Different Distribution Address</span>
+                </div>
+                <p className="text-gray-300">
+                  Your Reddit account <span className="text-orange-400 font-mono">u/{linkStatus.username}</span> has a different address linked for distributions.
+                </p>
+                {linkStatus.currentDistroAddress && (
+                  <p className="text-gray-400 text-sm mt-1 font-mono">
+                    Current: {linkStatus.currentDistroAddress.slice(0, 10)}...{linkStatus.currentDistroAddress.slice(-8)}
+                  </p>
+                )}
+                <p className="text-gray-400 text-sm mt-2">
+                  Complete verification below to use this address for future distributions.
+                </p>
+              </div>
+            ) : null}
+
             {/* Instructions */}
             <div>
               <h2 className="text-xl font-semibold mb-4">Instructions</h2>
