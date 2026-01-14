@@ -8,6 +8,7 @@
     "start": "node dist/src/index.js",
     "lint": "eslint .",
     "ingest-csv": "ts-node -r tsconfig-paths/register src/ingest-csv.ts",
+    "calc-dormant": "ts-node -r tsconfig-paths/register scripts/calc-dormant-moons.ts",
     "calc-earned-moons": "ts-node -r tsconfig-paths/register scripts/calc-earned-moons.ts",
     "backfill-burns": "ts-node -r tsconfig-paths/register scripts/backfill-burns.ts",
     "backfill-swaps": "ts-node -r tsconfig-paths/register scripts/backfill-swaps.ts",
