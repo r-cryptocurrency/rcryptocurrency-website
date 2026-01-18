@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@rcryptocurrency/database';
 import { isAddress } from 'viem';
 
+// Normalize Reddit username by stripping u/ prefix if present
+function normalizeUsername(username: string): string {
+  return username.startsWith('u/') ? username.slice(2) : username;
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { address: string } }
@@ -31,17 +36,23 @@ export async function GET(
     currentDistroAddress = distroLink.address;
   } else if (holder?.username) {
     // User might have a different address linked for distributions
+    // Normalize the holder username (legacy data may have u/ prefix)
+    const normalizedHolderUsername = normalizeUsername(holder.username);
     const userDistroLink = await prisma.userAddressLink.findUnique({
-      where: { username: holder.username },
+      where: { username: normalizedHolderUsername },
     });
     if (userDistroLink) {
       currentDistroAddress = userDistroLink.address;
     }
   }
 
+  // Normalize username to strip u/ prefix if present (legacy data may have it)
+  const rawUsername = distroLink?.username || holder?.username || null;
+  const username = rawUsername ? normalizeUsername(rawUsername) : null;
+
   return NextResponse.json({
     isLinked: !!distroLink,
-    username: distroLink?.username || holder?.username || null,
+    username,
     linkedAt: distroLink?.linkedAt || null,
     // If user has a different distribution address
     currentDistroAddress: currentDistroAddress !== addressLower ? currentDistroAddress : null,

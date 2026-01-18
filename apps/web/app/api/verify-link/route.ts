@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@rcryptocurrency/database';
 import { getAddress, isAddress } from 'viem';
 
+// Normalize Reddit username by stripping u/ prefix if present
+function normalizeUsername(username: string): string {
+  return username.startsWith('u/') ? username.slice(2) : username;
+}
+
 interface VerifyRequest {
   commentUrl: string;
   connectedAddress: string;
@@ -174,25 +179,17 @@ export async function POST(req: NextRequest) {
       where: { address: addressLower },
     });
 
-    if (existingDistroLink && existingDistroLink.username.toLowerCase() !== redditUsername.toLowerCase()) {
+    if (existingDistroLink && normalizeUsername(existingDistroLink.username).toLowerCase() !== redditUsername.toLowerCase()) {
       return NextResponse.json(
         { error: 'This address is already linked to another Reddit account for distributions.' },
         { status: 409 }
       );
     }
 
-    // Check if address exists in Holder table with a DIFFERENT username
-    // This protects existing ledger relationships (e.g., from CSV imports)
+    // Get existing holder for later use in upsert
     const existingHolder = await prisma.holder.findUnique({
       where: { address: addressLower },
     });
-
-    if (existingHolder?.username && existingHolder.username.toLowerCase() !== redditUsername.toLowerCase()) {
-      return NextResponse.json(
-        { error: `This address is already associated with Reddit user u/${existingHolder.username} in our records. If this is your address, please contact support.` },
-        { status: 409 }
-      );
-    }
 
     // Ensure RedditUser exists first (UserAddressLink has FK to RedditUser)
     await prisma.redditUser.upsert({

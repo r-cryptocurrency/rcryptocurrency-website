@@ -428,8 +428,7 @@ pm2 set pm2-logrotate:compress true
 
 ## 📄 Additional Documentation
 
-- [TODOmini.md](./TODOmini.md) - Quick setup checklist
-- [TODO.md](./TODO.md) - Detailed implementation plan
+- [TODO-distribution.md](./TODO-distribution.md) - MOON distribution system guide
 - [apps/ledger/README.md](./apps/ledger/README.md) - Ledger details
 - [apps/oracle/README.md](./apps/oracle/README.md) - Oracle details
 - [apps/web/README.md](./apps/web/README.md) - Web app details

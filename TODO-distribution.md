@@ -1,7 +1,7 @@
 # Decentralized MOON Distribution System
 
 **Status:** Implementation Complete - Awaiting Contract Deployment
-**Updated:** January 6, 2026
+**Updated:** January 18, 2026
 
 ---
 
@@ -14,6 +14,13 @@ Users link their Reddit account to an Ethereum address via `/link` page, then cl
 2. Admin generates Merkle tree from karma data + linked addresses
 3. Admin deploys distribution round to MoonDistributor contract
 4. Users claim their MOONs on the claim page
+
+### Linking Rules
+- **One Reddit username → One ETH address** (for distributions)
+- **One ETH address → One Reddit username** (for distributions)
+- Users can UPDATE their linked address by re-verifying with the new address
+- The `UserAddressLink` table stores the ACTIVE distribution link (username is unique key)
+- The `Holder` table may have legacy username mappings from CSV imports - these don't affect distribution linking
 
 ---
 
@@ -147,3 +154,30 @@ Consider creating a separate `/claim-pol` page or adding token selection to exis
 | MOON Token | Arbitrum One | `0x24404DC041d74cd03cFE28855F555559390C931b` |
 | MoonDistributor | Arbitrum One | `TODO: Deploy and update` |
 | MOON Token | Arbitrum Nova (legacy) | `0x0057Ac2d777797d31CD3f8f13bF5e927571D6Ad0` |
+
+---
+
+## Known Issues & Notes
+
+### Legacy Data: `u/` Prefix in Holder Table
+The old CSV import (`MoonDistributions.csv`) stored Reddit usernames WITH the `u/` prefix (e.g., `u/002_timmy`) in the `Holder` table. The API now normalizes these when:
+1. Returning username in `/api/link-status` response
+2. Comparing usernames during verification in `/api/verify-link`
+
+**Important:** New links via `/link` page store usernames WITHOUT the `u/` prefix (e.g., `002_timmy`) in `UserAddressLink`. The schema comment confirms this is the intended format.
+
+### Data Cleanup (Optional)
+To clean up legacy `u/` prefixes in the Holder table:
+```sql
+UPDATE "Holder"
+SET username = SUBSTRING(username FROM 3)
+WHERE username LIKE 'u/%';
+```
+
+---
+
+## Future Improvements
+
+- [ ] Add admin UI for creating distribution rounds (currently manual SQL)
+- [ ] Add claim history page showing past distributions
+- [ ] Consider batch claiming for users with multiple unclaimed rounds
