@@ -108,6 +108,65 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Foundation Section */}
+      <section className="min-h-screen flex items-center relative overflow-hidden py-20 bg-gradient-to-b from-slate-50/50 to-orange-50/50 dark:from-slate-900/20 dark:to-slate-950/50">
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="text-center lg:text-left">
+              <h2 className="text-3xl lg:text-5xl font-bold text-slate-900 dark:text-white mb-6">
+                <span className="bg-gradient-to-r from-rcc-orange to-orange-500 bg-clip-text text-transparent">rCryptoCurrency Foundation</span>
+              </h2>
+              <p className="text-xl font-semibold text-rcc-orange mb-4">CCMOON DAO</p>
+              <p className="text-lg text-slate-700 dark:text-slate-300 mb-6">
+		The official Non-Profit Organization represents rCryptoCurrency’s 10 million+ members, moderates the community across all platforms, and operates Community Tools and Education Programs for everyone.                
+	      </p>
+              <p className="text-slate-600 dark:text-slate-400 mb-6">
+                Registered in the Marshall Islands as a Non-Profit Organization (501(c)(3)-equivalent), dedicated to fostering transparency, community governance, sustainable growth of the ecosystem, and Education.
+              </p>
+              <a href="https://snapshot.org/#/s:cryptomods.eth" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-8 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
+                <i className="fa-solid fa-vote-yea text-lg"></i>
+                <span>Governance & Voting</span>
+              </a>
+            </div>
+            <div className="hidden lg:block">
+              <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-12 rounded-2xl border-2 border-rcc-orange/30 dark:border-rcc-orange/50">
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Foundation Focus</h3>
+                <ul className="space-y-4">
+                  <li className="flex items-start gap-3">
+                    <i className="fa-solid fa-check text-rcc-orange text-lg mt-1 flex-shrink-0"></i>
+                    <div>
+                      <p className="font-semibold text-slate-900 dark:text-white">Education & Tools</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">Building resources and programs for the whole world</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <i className="fa-solid fa-check text-rcc-orange text-lg mt-1 flex-shrink-0"></i>
+                    <div>
+                      <p className="font-semibold text-slate-900 dark:text-white">Community Governance</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">Democratic and compliant decision-making through CCMOON DAO</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <i className="fa-solid fa-check text-rcc-orange text-lg mt-1 flex-shrink-0"></i>
+                    <div>
+                      <p className="font-semibold text-slate-900 dark:text-white">Community Moderation</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">Managing engagement across all platforms</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <i className="fa-solid fa-check text-rcc-orange text-lg mt-1 flex-shrink-0"></i>
+                    <div>
+                      <p className="font-semibold text-slate-900 dark:text-white">Transparency</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">Ensuring accountability and open operations</p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+	  </div>
+        </div>
+      </section>
+
       {/* MOON Token Section */}
       <section className="min-h-screen flex items-center relative overflow-hidden py-20 bg-slate-50/50 dark:bg-slate-900/30">
         <div className="container mx-auto px-4 relative z-10">

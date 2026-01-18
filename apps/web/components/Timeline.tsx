@@ -68,7 +68,7 @@ const TIMELINE_DATA: TimelineEvent[] = [
   {
     date: "June 2020",
     title: "The First Moon Landing",
-    description: "Moons were first distributed to users in June 2020. Each user earned 8.8 Moons per karma on r/CryptoCurrency."
+    description: "Moons were first distributed to users in June 2020 through Reddit's official Community Points program on r/CryptoCurrency. Each user earned 8.8 Moons per karma, establishing the foundation for the community-driven token."
   }
 ];
 
