@@ -73,23 +73,18 @@ git pull origin master
 
 ### 2. Add Environment Variables
 
-**Important:** Next.js reads env vars from `apps/web/.env` at build time. Copy the example:
+Add these to the root `.env` file:
 ```bash
-cp apps/web/.env.example apps/web/.env
-```
-
-Then edit `apps/web/.env` with your values:
-```bash
-# Admin authentication (shared password for all team members)
 ADMIN_PASSWORD=your_secure_password_here
-
-# Resend email service
 RESEND_API_KEY=re_...
-RESEND_SEGMENT_ID=...  # Create segment in Resend dashboard first (for broadcasts)
+RESEND_SEGMENT_ID=...  # Create segment in Resend dashboard first
 RESEND_FROM_EMAIL=updates@updates.rcryptocurrency.com
 ```
 
-Also add these to the root `.env` if not already present (for other apps).
+Next.js reads env vars from `apps/web/.env` at build time. Create a symlink so it reads from root:
+```bash
+ln -sf ~/rcryptocurrency-website/.env ~/rcryptocurrency-website/apps/web/.env
+```
 
 ### 3. Push Prisma Schema Changes
 This adds the `NewsletterSubscriber` and `NewsletterPost` tables to the database:
@@ -154,68 +149,6 @@ After setup:
 4. The email goes to all contacts in your segment
 
 ---
-
-## Database Schema Changes
-
-Two new tables are added:
-
-```sql
--- Newsletter subscribers (local backup, Resend is source of truth)
-CREATE TABLE "NewsletterSubscriber" (
-  "id" SERIAL PRIMARY KEY,
-  "email" TEXT UNIQUE NOT NULL,
-  "subscribedAt" TIMESTAMP DEFAULT NOW(),
-  "isActive" BOOLEAN DEFAULT TRUE
-);
-
--- Newsletter/blog posts created by admins
-CREATE TABLE "NewsletterPost" (
-  "id" SERIAL PRIMARY KEY,
-  "slug" TEXT UNIQUE NOT NULL,
-  "title" TEXT NOT NULL,
-  "body" TEXT NOT NULL,           -- Markdown content
-  "excerpt" TEXT,                 -- Short preview text
-  "publishedAt" TIMESTAMP,        -- NULL = draft
-  "createdAt" TIMESTAMP DEFAULT NOW(),
-  "updatedAt" TIMESTAMP,
-  "authorName" TEXT,
-  "isSent" BOOLEAN DEFAULT FALSE  -- Has been sent as newsletter
-);
-```
-
-### Manual SQL (if needed)
-If `db:push` fails for any reason, you can run these manually:
-```sql
--- Connect to database
-docker exec -it rcryptocurrency-site-db-1 psql -U rcc_user -d rcc_db
-
--- Create tables
-CREATE TABLE IF NOT EXISTS "NewsletterSubscriber" (
-  "id" SERIAL PRIMARY KEY,
-  "email" TEXT UNIQUE NOT NULL,
-  "subscribedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "isActive" BOOLEAN NOT NULL DEFAULT TRUE
-);
-
-CREATE INDEX IF NOT EXISTS "NewsletterSubscriber_email_idx" ON "NewsletterSubscriber"("email");
-CREATE INDEX IF NOT EXISTS "NewsletterSubscriber_isActive_idx" ON "NewsletterSubscriber"("isActive");
-
-CREATE TABLE IF NOT EXISTS "NewsletterPost" (
-  "id" SERIAL PRIMARY KEY,
-  "slug" TEXT UNIQUE NOT NULL,
-  "title" TEXT NOT NULL,
-  "body" TEXT NOT NULL,
-  "excerpt" TEXT,
-  "publishedAt" TIMESTAMP(3),
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" TIMESTAMP(3) NOT NULL,
-  "authorName" TEXT,
-  "isSent" BOOLEAN NOT NULL DEFAULT FALSE
-);
-
-CREATE INDEX IF NOT EXISTS "NewsletterPost_publishedAt_idx" ON "NewsletterPost"("publishedAt");
-CREATE INDEX IF NOT EXISTS "NewsletterPost_slug_idx" ON "NewsletterPost"("slug");
-```
 
 ---
 

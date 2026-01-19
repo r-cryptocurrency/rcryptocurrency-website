@@ -189,7 +189,7 @@ export async function broadcastPost(id: number): Promise<UpdatePostResult> {
 
   try {
     // Create broadcast via Resend API
-    // Note: Broadcasts require a segmentId (create a segment in Resend dashboard first)
+    // Note: Broadcasts require a segment_id (create a segment in Resend dashboard first)
     const broadcastResponse = await fetch('https://api.resend.com/broadcasts', {
       method: 'POST',
       headers: {
@@ -197,7 +197,7 @@ export async function broadcastPost(id: number): Promise<UpdatePostResult> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        segmentId: process.env.RESEND_SEGMENT_ID,
+        segment_id: process.env.RESEND_SEGMENT_ID,
         from: process.env.RESEND_FROM_EMAIL || 'updates@updates.rcryptocurrency.com',
         subject: post.title,
         html: formatPostAsEmail(post.title, post.body),
