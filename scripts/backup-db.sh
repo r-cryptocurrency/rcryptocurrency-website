@@ -16,10 +16,33 @@
 
 set -e
 
+# Get script directory to find .env file
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+ENV_FILE="$PROJECT_ROOT/.env"
+
+# Load DATABASE_URL from .env file
+if [ -f "$ENV_FILE" ]; then
+    DATABASE_URL=$(grep -E "^DATABASE_URL=" "$ENV_FILE" | cut -d '=' -f2- | tr -d '"' | tr -d "'")
+else
+    echo "ERROR: .env file not found at $ENV_FILE"
+    exit 1
+fi
+
+if [ -z "$DATABASE_URL" ]; then
+    echo "ERROR: DATABASE_URL not found in .env file"
+    exit 1
+fi
+
+# Parse DATABASE_URL (format: postgresql://user:password@host:port/database)
+# Example: postgresql://postgres:mypassword@localhost:5432/rcc_database
+DB_USER=$(echo "$DATABASE_URL" | sed -n 's|.*://\([^:]*\):.*|\1|p')
+DB_PASS=$(echo "$DATABASE_URL" | sed -n 's|.*://[^:]*:\([^@]*\)@.*|\1|p')
+DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:]*\):.*|\1|p')
+DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
+DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+
 # Configuration
-DB_NAME="rcc_database"
-DB_USER="postgres"
-DB_HOST="localhost"
 BACKUP_DIR="/tmp/db-backups"
 RCLONE_REMOTE="gdrive:rcryptocurrency-backups"
 RETENTION_DAYS=30
@@ -29,13 +52,14 @@ DATE=$(date +%Y-%m-%d)
 FILENAME="rcc_backup_${DATE}.sql.gz"
 
 echo "=== Database Backup Started: $(date) ==="
+echo "Database: $DB_NAME on $DB_HOST:$DB_PORT"
 
 # Create backup directory if it doesn't exist
 mkdir -p "$BACKUP_DIR"
 
-# Dump database and compress
+# Dump database and compress (use PGPASSWORD to avoid password prompt)
 echo "Dumping database: $DB_NAME"
-pg_dump -U "$DB_USER" -h "$DB_HOST" "$DB_NAME" | gzip > "$BACKUP_DIR/$FILENAME"
+PGPASSWORD="$DB_PASS" pg_dump -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" "$DB_NAME" | gzip > "$BACKUP_DIR/$FILENAME"
 
 # Check if backup was created
 if [ ! -f "$BACKUP_DIR/$FILENAME" ]; then
