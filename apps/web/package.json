@@ -11,6 +11,7 @@
   "dependencies": {
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
+    "@react-email/components": "^0.0.31",
     "@rainbow-me/rainbowkit": "^2.2.10",
     "@rcryptocurrency/chain-data": "workspace:^",
     "@rcryptocurrency/database": "workspace:*",

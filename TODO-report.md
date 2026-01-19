@@ -187,25 +187,33 @@ After setup:
 
 ---
 
-## Priority 4: Complete Newsletter System
-
-**Status:** Partially complete (broadcast works, templates are basic)
+## Priority 4: Complete Newsletter System ✅ COMPLETE
 
 **Goal:** Full newsletter functionality including templates, management, and unsubscribe.
 
-### Tasks
-- [ ] Create React Email templates in `apps/web/components/emails/`
-  - [ ] `WeeklyUpdate.tsx` - stats + top content
-  - [ ] `NewBlogPost.tsx` - blog announcement
-  - [ ] `Welcome.tsx` - subscription confirmation
-- [ ] Implement `/newsletter/manage` page for preference management
-- [ ] Handle Resend unsubscribe webhook
-- [x] Add unsubscribe link to all email templates (`{{{RESEND_UNSUBSCRIBE_URL}}}`) - done in broadcast
-- [ ] Test email rendering across clients (Gmail, Outlook, Apple Mail)
+### Completed Tasks
+- [x] Create React Email templates in `apps/web/components/emails/`
+  - [x] `NewPostEmail.tsx` - blog announcement with styled template
+  - [x] `WelcomeEmail.tsx` - subscription confirmation
+- [x] Implement `/newsletter/manage` page for unsubscribe
+- [x] Add unsubscribe server action (updates both Resend and local DB)
+- [x] Welcome email sent automatically on signup
+- [x] Broadcast uses React Email template instead of raw HTML
 
-### Automation (Future)
+### Files Created
+- `apps/web/components/emails/WelcomeEmail.tsx`
+- `apps/web/components/emails/NewPostEmail.tsx`
+- `apps/web/components/emails/index.ts`
+- `apps/web/app/newsletter/manage/page.tsx`
+
+### Dependencies Added
+- `@react-email/components` - For building email templates
+
+### Remaining (Future)
+- [ ] `WeeklyUpdate.tsx` template - stats + top content (for automated sends)
+- [ ] Resend webhook handler for unsubscribe events
+- [ ] Test email rendering across clients (Gmail, Outlook, Apple Mail)
 - [ ] Consider cron job for weekly automated sends
-- [ ] GitHub Actions workflow for scheduled broadcasts
 
 ---
 

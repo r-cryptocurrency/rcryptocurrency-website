@@ -2,12 +2,14 @@
 
 import { redirect } from 'next/navigation';
 import { prisma } from '@rcryptocurrency/database';
+import { render } from '@react-email/components';
 import {
   createAdminSession,
   destroyAdminSession,
   validatePassword,
   verifyAdminSession,
 } from '@/lib/admin-auth';
+import NewPostEmail from '@/components/emails/NewPostEmail';
 
 interface LoginResult {
   success: boolean;
@@ -188,6 +190,17 @@ export async function broadcastPost(id: number): Promise<UpdatePostResult> {
   }
 
   try {
+    // Render the React Email template
+    const html = await render(NewPostEmail({
+      title: post.title,
+      excerpt: post.excerpt || undefined,
+      slug: post.slug,
+      authorName: post.authorName || undefined,
+      unsubscribeUrl: '{{{RESEND_UNSUBSCRIBE_URL}}}', // Resend replaces this
+    }));
+
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'updates@updates.rcryptocurrency.com';
+
     // Create broadcast via Resend API
     // Note: Broadcasts require a segment_id (create a segment in Resend dashboard first)
     const broadcastResponse = await fetch('https://api.resend.com/broadcasts', {
@@ -198,9 +211,9 @@ export async function broadcastPost(id: number): Promise<UpdatePostResult> {
       },
       body: JSON.stringify({
         segment_id: process.env.RESEND_SEGMENT_ID,
-        from: process.env.RESEND_FROM_EMAIL || 'updates@updates.rcryptocurrency.com',
+        from: `r/CryptoCurrency <${fromEmail}>`,
         subject: post.title,
-        html: formatPostAsEmail(post.title, post.body),
+        html,
       }),
     });
 
@@ -239,39 +252,3 @@ export async function broadcastPost(id: number): Promise<UpdatePostResult> {
   }
 }
 
-// Format post content as HTML email
-function formatPostAsEmail(title: string, body: string): string {
-  // Basic markdown to HTML conversion
-  const htmlBody = body
-    .replace(/^### (.*$)/gim, '<h3 style="font-size: 18px; margin-top: 24px;">$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2 style="font-size: 22px; margin-top: 32px;">$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1 style="font-size: 26px; margin-top: 32px;">$1</h1>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: #ea580c;">$1</a>')
-    .replace(/\n\n/g, '</p><p style="margin: 16px 0;">')
-    .replace(/\n/g, '<br />');
-
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #111827; color: #e5e7eb; padding: 40px 20px;">
-  <div style="max-width: 600px; margin: 0 auto; background-color: #1f2937; border-radius: 12px; padding: 32px;">
-    <h1 style="color: #ffffff; font-size: 28px; margin-bottom: 24px;">${title}</h1>
-    <div style="color: #d1d5db; line-height: 1.6;">
-      <p style="margin: 16px 0;">${htmlBody}</p>
-    </div>
-    <hr style="border: none; border-top: 1px solid #374151; margin: 32px 0;" />
-    <p style="color: #9ca3af; font-size: 12px;">
-      You're receiving this because you subscribed to r/CryptoCurrency updates.<br />
-      <a href="{{{RESEND_UNSUBSCRIBE_URL}}}" style="color: #9ca3af;">Unsubscribe</a>
-    </p>
-  </div>
-</body>
-</html>
-  `.trim();
-}
