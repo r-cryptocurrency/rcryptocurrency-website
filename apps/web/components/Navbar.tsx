@@ -76,7 +76,8 @@ export default function Navbar() {
           <NavLink href="/calendar" label="Calendar" emoji="📅" onClick={() => setIsOpen(false)} />
           <NavLink href="/swap" label="Swap" emoji="🔄" onClick={() => setIsOpen(false)} />
           <NavLink href="/advertise" label="Advertise" emoji="📢" onClick={() => setIsOpen(false)} />
-          <a 
+          <NavLink href="/newsletter" label="Newsletter" emoji="📧" onClick={() => setIsOpen(false)} />
+          <a
             href="https://www.reddit.com/r/CryptoCurrency/" 
             target="_blank" 
             rel="noopener noreferrer"

@@ -239,3 +239,31 @@ model DistributionClaim {
   @@index([roundId])
   @@index([address])
 }
+
+// Newsletter subscribers (local backup, Resend is source of truth)
+model NewsletterSubscriber {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  subscribedAt DateTime @default(now())
+  isActive     Boolean  @default(true)
+
+  @@index([email])
+  @@index([isActive])
+}
+
+// Newsletter/blog posts created by admins
+model NewsletterPost {
+  id          Int       @id @default(autoincrement())
+  slug        String    @unique
+  title       String
+  body        String    // Markdown content
+  excerpt     String?   // Short preview text
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  authorName  String?   // Admin who created it
+  isSent      Boolean   @default(false) // Has been sent as newsletter
+
+  @@index([publishedAt])
+  @@index([slug])
+}
