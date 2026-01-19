@@ -44,7 +44,7 @@ DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
 
 # Configuration
 BACKUP_DIR="/tmp/db-backups"
-RCLONE_REMOTE="gdrive:rcryptocurrency-backups"
+RCLONE_REMOTE="db-backup:rcryptocurrency-backups"
 RETENTION_DAYS=30
 
 # Generate filename with date
