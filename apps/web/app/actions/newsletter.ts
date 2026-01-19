@@ -19,10 +19,20 @@ export async function subscribeToNewsletter(email: string): Promise<SubscribeRes
   const normalizedEmail = email.toLowerCase().trim();
 
   try {
-    // Add to Resend contacts if configured
-    // Endpoint: POST https://api.resend.com/contacts (no audience_id needed)
+    // Add to Resend contacts and segment if configured
+    // Endpoint: POST https://api.resend.com/contacts
     if (process.env.RESEND_API_KEY) {
       console.log('Attempting to add contact to Resend:', normalizedEmail);
+
+      // Build request body - add to segment if RESEND_SEGMENT_ID is set
+      const contactBody: Record<string, unknown> = {
+        email: normalizedEmail,
+        unsubscribed: false,
+      };
+
+      if (process.env.RESEND_SEGMENT_ID) {
+        contactBody.segments = [{ id: process.env.RESEND_SEGMENT_ID }];
+      }
 
       const resendResponse = await fetch('https://api.resend.com/contacts', {
         method: 'POST',
@@ -30,10 +40,7 @@ export async function subscribeToNewsletter(email: string): Promise<SubscribeRes
           'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          email: normalizedEmail,
-          unsubscribed: false,
-        }),
+        body: JSON.stringify(contactBody),
       });
 
       const responseText = await resendResponse.text();
