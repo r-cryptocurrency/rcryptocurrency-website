@@ -173,19 +173,17 @@ export default function DesktopNav() {
                 {item.label}
               </a>
             ))}
-          </div>
+              {/* Theme Toggle - in full nav */}
+              <ThemeToggle />
+            </div>
 
-            {/* Theme Toggle - in full nav */}
-            <ThemeToggle />
-          </div>
-
-          {/* Theme Toggle - for medium screens (shown next to hamburger) */}
-          <div className="lg:hidden">
-            <ThemeToggle />
+            {/* Theme Toggle - for medium screens (shown next to hamburger) */}
+            <div className="lg:hidden">
+              <ThemeToggle />
+            </div>
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
 
     {/* Slide-over menu for medium screens */}
     <Transition show={mobileMenuOpen} as={Fragment}>
