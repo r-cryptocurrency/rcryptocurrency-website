@@ -211,35 +211,83 @@ After setup:
 
 ### Remaining (Future)
 - [ ] `WeeklyUpdate.tsx` template - stats + top content (for automated sends)
-- [ ] Resend webhook handler for unsubscribe events
+- [x] ~~Resend webhook handler~~ - Not needed; Resend handles unsubscribes internally via segment filter
 - [ ] Test email rendering across clients (Gmail, Outlook, Apple Mail)
 - [ ] Consider cron job for weekly automated sends
 
 ---
 
-## Priority 5: Database Backup Strategy
+## Priority 5: Database Backup Strategy ✅ COMPLETE
 
-**Status:** Not started
+**Goal:** Automated backup system for PostgreSQL data to Google Drive.
 
-**Goal:** Automated backup system for PostgreSQL data.
+### Solution
+- Daily `pg_dump` backups via cron
+- Upload to Google Drive using `rclone`
+- 30-day retention (auto-cleanup of old backups)
+- No credentials stored on server (OAuth refresh token only)
 
-### Current State
-- Manual `pg_dump` via Docker (documented in `packages/database/README.md`)
-- No automated backups
+### Files Created
+- `scripts/backup-db.sh` - Backup script
 
-### Tasks
-- [ ] Evaluate backup solutions:
-  - [ ] Cron job with `pg_dump` to cloud storage (S3/GCS)
-  - [ ] Managed Postgres with built-in backups (Supabase, Neon, RDS)
-  - [ ] pg_basebackup for point-in-time recovery
-- [ ] Implement chosen solution
-- [ ] Document restore procedures
-- [ ] Test restore process
+### Setup Instructions
 
-### Considerations
-- Backup frequency (daily recommended for this data volume)
-- Retention period (30 days minimum)
-- Off-site storage requirement
+#### 1. Install rclone on server
+```bash
+curl https://rclone.org/install.sh | sudo bash
+```
+
+#### 2. Configure Google Drive remote
+```bash
+rclone config
+# Choose: n (new remote)
+# Name: gdrive
+# Storage: Google Drive (usually option 18)
+# Client ID: (leave blank for rclone's)
+# Client Secret: (leave blank)
+# Scope: 1 (full access) or 2 (file access only)
+# Root folder ID: (leave blank or paste folder ID to restrict access)
+# Service Account: (leave blank)
+# Auto config: y (opens browser for OAuth)
+# Team drive: n
+```
+
+#### 3. Create backup folder in Google Drive
+```bash
+rclone mkdir gdrive:rcryptocurrency-backups
+```
+
+#### 4. Test the backup script
+```bash
+chmod +x ~/rcryptocurrency-website/scripts/backup-db.sh
+~/rcryptocurrency-website/scripts/backup-db.sh
+```
+
+#### 5. Add to crontab (daily at 3 AM)
+```bash
+crontab -e
+# Add this line:
+0 3 * * * /home/node-rcc-site/rcryptocurrency-website/scripts/backup-db.sh >> /home/node-rcc-site/backup.log 2>&1
+```
+
+### Restore Procedure
+```bash
+# List available backups
+rclone ls gdrive:rcryptocurrency-backups
+
+# Download a backup
+rclone copy gdrive:rcryptocurrency-backups/rcc_backup_2026-01-18.sql.gz ~/
+
+# Restore
+gunzip rcc_backup_2026-01-18.sql.gz
+psql -U postgres -d rcc_database < rcc_backup_2026-01-18.sql
+```
+
+### Security Notes
+- rclone stores only an OAuth refresh token (no password)
+- You can revoke access anytime: Google Account → Security → Third-party apps
+- Backups are gzipped to save space
+- Old backups auto-deleted after 30 days
 
 ---
 
@@ -274,16 +322,14 @@ After setup:
 ## Environment Variables Summary
 
 ```bash
-# Newsletter & Admin (Priority 1 & 3) - REQUIRED NOW
+# Newsletter & Admin (Priority 1 & 3) - REQUIRED
 ADMIN_PASSWORD=your_secure_password_here
 RESEND_API_KEY=re_...
 RESEND_SEGMENT_ID=...   # Required for broadcasts
 RESEND_FROM_EMAIL=updates@updates.rcryptocurrency.com
 
-# Database Backup (Priority 5) - Future
-BACKUP_S3_BUCKET=...
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
+# Database Backup (Priority 5)
+# No env vars needed - rclone uses OAuth stored in ~/.config/rclone/rclone.conf
 ```
 
 ---
