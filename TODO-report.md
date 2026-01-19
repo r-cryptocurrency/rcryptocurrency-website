@@ -152,31 +152,38 @@ After setup:
 
 ---
 
-## Priority 2: Navigation UI Refactor
-
-**Status:** Not started
+## Priority 2: Navigation UI Refactor ✅ COMPLETE
 
 **Goal:** Replace overcrowded hamburger menu with categorized navigation.
 
-### Proposed Categories
+### Navigation Structure
 
 | Category | Links |
 |----------|-------|
-| **Market Data** | Stats, Richlist, Burns, Swap |
-| **Governance** | 2025 Constitution, 2024 Constitution |
-| **Community** | Leaderboard, Calendar, Advertise, Newsletter |
-| **My Account** | Link Wallet, Claim |
+| **Home** | Direct link to `/` |
+| **Market** | Stats, Richlist, Burns, Swap |
+| **Community** | Leaderboard, Calendar, Advertise, Newsletter, Constitution |
+| **Account** | Link Wallet, Claim Moons, Preferences |
 
-### Tasks
-- [ ] Refactor `Navbar.tsx` to accept structured navigation config
-- [ ] Implement Mega Menu dropdown for desktop (Radix UI or Headless UI)
-- [ ] Implement Bottom Tab Bar for mobile with drawer for overflow
-- [ ] Update mobile drawer to use accordion/collapsible sections by category
-- [ ] Test responsive breakpoints
+### Completed Tasks
+- [x] Create navigation config with Heroicons (`components/navigation/types.tsx`)
+- [x] Implement mobile bottom tab bar with slide-up sheets (Headless UI Dialog)
+- [x] Implement desktop horizontal nav with Popover dropdowns
+- [x] Add hamburger menu for medium screens (md to lg breakpoint)
+- [x] Full accessibility: ARIA roles, keyboard nav, focus management
+- [x] Safe area insets for notched devices
 
-### Design Decisions Needed
-- [ ] Confirm category groupings with team
-- [ ] Decide on 4-5 items for mobile bottom tab bar (suggest: Home, Analytics, Actions, Menu)
+### Files Created
+- `apps/web/components/navigation/types.tsx` - Nav config and types
+- `apps/web/components/navigation/MobileBottomNav.tsx` - Bottom tab bar
+- `apps/web/components/navigation/BottomSheet.tsx` - Slide-up menu
+- `apps/web/components/navigation/DesktopNav.tsx` - Desktop nav with dropdowns
+- `apps/web/components/navigation/index.ts` - Barrel export
+
+### Responsive Breakpoints
+- **Mobile (< 768px)**: Bottom tab bar with 4 tabs
+- **Tablet (768px - 1024px)**: Top bar with hamburger menu
+- **Desktop (> 1024px)**: Full horizontal nav with dropdowns
 
 ---
 
