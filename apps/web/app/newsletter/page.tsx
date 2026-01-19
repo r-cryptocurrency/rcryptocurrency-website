@@ -25,40 +25,40 @@ export default async function NewsletterPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white pt-24">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-white pt-24">
       <div className="max-w-3xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">
             r/CryptoCurrency Newsletter
           </h1>
-          <p className="text-gray-400 text-lg max-w-xl mx-auto">
+          <p className="text-gray-600 dark:text-gray-400 text-lg max-w-xl mx-auto">
             Stay up to date with MOON distributions, governance updates, and community news.
           </p>
         </div>
 
         {/* Signup Section */}
-        <div className="bg-gray-900 rounded-xl p-6 mb-12">
+        <div className="newsletter-card bg-white dark:bg-gray-900 rounded-xl p-6 mb-12 shadow-sm dark:shadow-none border border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-semibold mb-4">Subscribe to Updates</h2>
           <NewsletterForm />
 
-          <div className="mt-6 pt-6 border-t border-gray-800">
-            <h3 className="text-sm font-medium text-gray-400 mb-3">What you'll get:</h3>
-            <ul className="space-y-2 text-gray-300 text-sm">
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">What you'll get:</h3>
+            <ul className="space-y-2 text-gray-700 dark:text-gray-300 text-sm">
               <li className="flex items-start gap-2">
-                <span className="text-orange-400">•</span>
+                <span className="text-orange-500 dark:text-orange-400">•</span>
                 <span>MOON distribution announcements and claim reminders</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-orange-400">•</span>
+                <span className="text-orange-500 dark:text-orange-400">•</span>
                 <span>Governance proposals and voting updates</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-orange-400">•</span>
+                <span className="text-orange-500 dark:text-orange-400">•</span>
                 <span>Weekly burn and market stats</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-orange-400">•</span>
+                <span className="text-orange-500 dark:text-orange-400">•</span>
                 <span>Community highlights and important announcements</span>
               </li>
             </ul>
@@ -70,8 +70,8 @@ export default async function NewsletterPage() {
           <h2 className="text-2xl font-semibold mb-6">Past Updates</h2>
 
           {posts.length === 0 ? (
-            <div className="bg-gray-900 rounded-xl p-8 text-center">
-              <p className="text-gray-400">No updates yet. Check back soon!</p>
+            <div className="newsletter-card bg-white dark:bg-gray-900 rounded-xl p-8 text-center shadow-sm dark:shadow-none border border-gray-200 dark:border-gray-700">
+              <p className="text-gray-500 dark:text-gray-400">No updates yet. Check back soon!</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -79,15 +79,15 @@ export default async function NewsletterPage() {
                 <Link
                   key={post.id}
                   href={`/newsletter/${post.slug}`}
-                  className="block bg-gray-900 rounded-xl p-6 hover:bg-gray-800 transition-colors"
+                  className="newsletter-card block bg-white dark:bg-gray-900 rounded-xl p-6 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm dark:shadow-none border border-gray-200 dark:border-gray-700"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-semibold text-white hover:text-orange-400 transition-colors">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
                         {post.title}
                       </h3>
                       {post.excerpt && (
-                        <p className="text-gray-400 mt-2 line-clamp-2">
+                        <p className="text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
                           {post.excerpt}
                         </p>
                       )}

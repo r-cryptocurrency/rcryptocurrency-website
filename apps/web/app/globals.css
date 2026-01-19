@@ -49,3 +49,14 @@
 .dark .tremor-Select-root [role="option"]:hover {
   background-color: #1e293b !important;
 }
+
+/* Navigation dropdown panel - force dark mode styling */
+html.dark .nav-dropdown-panel {
+  background-color: rgb(30 41 59) !important; /* slate-800 */
+}
+
+/* Newsletter page dark mode cards */
+html.dark .newsletter-card {
+  background-color: rgb(17 24 39) !important; /* gray-900 */
+  border-color: rgb(55 65 81) !important; /* gray-700 */
+}

@@ -16,9 +16,9 @@ export default function SentimentInfo() {
       <InformationCircleIcon className="h-5 w-5 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 cursor-help transition-colors" />
       
       {isOpen && (
-        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-48 sm:w-64 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-xl z-50 border border-slate-700">
-          <div className="font-semibold mb-1 text-orange-400">Sentiment Score</div>
-          Sentiment is calculated using VADER analysis on post titles. Scores range from <span className="text-red-400 font-bold">-1 (Negative)</span> to <span className="text-green-400 font-bold">+1 (Positive)</span>.
+        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-48 sm:w-64 p-3 bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-xs rounded-lg shadow-xl z-50 border border-gray-200 dark:border-slate-700">
+          <div className="font-semibold mb-1 text-orange-600 dark:text-orange-400">Sentiment Score</div>
+          Sentiment is calculated using VADER analysis on post titles. Scores range from <span className="text-red-600 dark:text-red-400 font-bold">-1 (Negative)</span> to <span className="text-green-600 dark:text-green-400 font-bold">+1 (Positive)</span>.
         </div>
       )}
     </div>

@@ -111,7 +111,7 @@ export default function DesktopNav() {
                       leaveTo="opacity-0 translate-y-1"
                     >
                       <PopoverPanel
-                        className="absolute left-0 z-10 mt-2 w-56
+                        className="nav-dropdown-panel absolute left-0 z-10 mt-2 w-56
                           bg-white dark:bg-slate-800
                           rounded-xl shadow-lg ring-1 ring-black/5
                           dark:ring-white/10
@@ -132,12 +132,12 @@ export default function DesktopNav() {
                                     dark:focus-visible:bg-slate-700
                                     ${pathname === item.href
                                       ? 'text-rcc-orange bg-rcc-orange/10'
-                                      : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700'
+                                      : 'text-gray-900 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700'
                                     }`}
                                   aria-current={pathname === item.href ? 'page' : undefined}
                                 >
                                   <item.icon
-                                    className="w-5 h-5 flex-shrink-0"
+                                    className="w-5 h-5 flex-shrink-0 text-gray-500 dark:text-gray-300"
                                     aria-hidden="true"
                                   />
                                   {item.label}

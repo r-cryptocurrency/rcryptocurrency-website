@@ -26,17 +26,17 @@ function renderMarkdown(content: string): string {
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     // Links
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-orange-400 hover:underline" target="_blank" rel="noopener noreferrer">$1</a>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-orange-600 dark:text-orange-400 hover:underline" target="_blank" rel="noopener noreferrer">$1</a>')
     // Code blocks
-    .replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-800 rounded-lg p-4 my-4 overflow-x-auto"><code>$1</code></pre>')
+    .replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 my-4 overflow-x-auto"><code>$1</code></pre>')
     // Inline code
-    .replace(/`([^`]+)`/g, '<code class="bg-gray-800 px-1 rounded">$1</code>')
+    .replace(/`([^`]+)`/g, '<code class="bg-gray-200 dark:bg-gray-800 px-1 rounded">$1</code>')
     // Unordered lists
     .replace(/^\s*[-*]\s+(.*)$/gim, '<li class="ml-4">$1</li>')
     // Ordered lists (basic)
     .replace(/^\s*\d+\.\s+(.*)$/gim, '<li class="ml-4 list-decimal">$1</li>')
     // Horizontal rules
-    .replace(/^---$/gim, '<hr class="border-gray-700 my-8" />')
+    .replace(/^---$/gim, '<hr class="border-gray-300 dark:border-gray-700 my-8" />')
     // Paragraphs (double newlines)
     .replace(/\n\n/g, '</p><p class="my-4">')
     // Single newlines to breaks
@@ -58,12 +58,12 @@ export default async function NewsletterPostPage({
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white pt-24">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-white pt-24">
       <div className="max-w-3xl mx-auto px-4 py-12">
         {/* Back link */}
         <Link
           href="/newsletter"
-          className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors"
+          className="inline-flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white mb-8 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -76,7 +76,7 @@ export default async function NewsletterPostPage({
           <h1 className="text-3xl md:text-4xl font-bold mb-4">
             {post.title}
           </h1>
-          <div className="flex items-center gap-4 text-gray-400">
+          <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
             <time>{formatDate(post.publishedAt)}</time>
             {post.authorName && (
               <>
@@ -88,9 +88,9 @@ export default async function NewsletterPostPage({
         </header>
 
         {/* Post content */}
-        <article className="prose prose-invert prose-orange max-w-none">
+        <article className="prose prose-gray dark:prose-invert prose-orange max-w-none">
           <div
-            className="text-gray-300 leading-relaxed"
+            className="text-gray-700 dark:text-gray-300 leading-relaxed"
             dangerouslySetInnerHTML={{
               __html: `<p class="my-4">${renderMarkdown(post.body)}</p>`,
             }}
@@ -98,15 +98,15 @@ export default async function NewsletterPostPage({
         </article>
 
         {/* Footer */}
-        <footer className="mt-12 pt-8 border-t border-gray-800">
-          <div className="bg-gray-900 rounded-xl p-6">
+        <footer className="mt-12 pt-8 border-t border-gray-300 dark:border-gray-800">
+          <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-lg dark:shadow-none border border-gray-200 dark:border-gray-800">
             <h3 className="font-semibold mb-2">Want more updates?</h3>
-            <p className="text-gray-400 mb-4">
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
               Subscribe to get MOON news, governance updates, and community highlights.
             </p>
             <Link
               href="/newsletter#top"
-              className="inline-block bg-orange-600 hover:bg-orange-500 px-6 py-2 rounded-lg font-semibold transition-colors"
+              className="inline-block bg-orange-600 hover:bg-orange-500 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
             >
               Subscribe
             </Link>
