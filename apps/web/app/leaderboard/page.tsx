@@ -1,6 +1,7 @@
 import { prisma } from '@rcryptocurrency/database';
 import Background from '../../components/Background';
 import Link from 'next/link';
+import LeaderboardSearch from './LeaderboardSearch';
 
 export const revalidate = 60; // Revalidate every minute
 
@@ -35,19 +36,39 @@ function getDaysRemaining(endDate: Date): number {
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
 
-export default async function LeaderboardPage({ searchParams }: { searchParams: { round?: string } }) {
+export default async function LeaderboardPage({ searchParams }: { searchParams: { round?: string; search?: string } }) {
   const currentRound = getRoundForDate(new Date());
   const requestedRound = searchParams.round ? parseInt(searchParams.round) : currentRound;
+  const searchQuery = searchParams.search?.trim().toLowerCase() || '';
   const { startDate, endDate } = getRoundDates(requestedRound);
   const daysRemaining = requestedRound === currentRound ? getDaysRemaining(endDate) : 0;
   const isActive = requestedRound === currentRound;
 
-  // Fetch leaderboard entries
+  // Fetch leaderboard entries - if searching, filter by username
   const entries = await prisma.karmaEntry.findMany({
-    where: { roundId: requestedRound },
+    where: {
+      roundId: requestedRound,
+      ...(searchQuery ? { username: { contains: searchQuery, mode: 'insensitive' } } : {})
+    },
     orderBy: { totalKarma: 'desc' },
-    take: 100
+    take: searchQuery ? 50 : 100 // Limit search results
   });
+
+  // If searching, we need to calculate the actual rank for each result
+  // by counting how many users have higher karma
+  let rankedEntries = entries;
+  if (searchQuery && entries.length > 0) {
+    const ranksPromises = entries.map(async (entry) => {
+      const rank = await prisma.karmaEntry.count({
+        where: {
+          roundId: requestedRound,
+          totalKarma: { gt: entry.totalKarma }
+        }
+      });
+      return { ...entry, rank: rank + 1 };
+    });
+    rankedEntries = await Promise.all(ranksPromises);
+  }
 
   // Get available rounds for navigation
   const rounds = await prisma.karmaRound.findMany({
@@ -85,6 +106,11 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
             </div>
           </div>
 
+          {/* Search Bar */}
+          <div className="mb-6">
+            <LeaderboardSearch currentRound={requestedRound} initialSearch={searchQuery} />
+          </div>
+
           {/* Round Info Card */}
           <div className="bg-white/80 dark:bg-black/20 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-8 border border-orange-100 dark:border-white/10">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -113,26 +139,32 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
 
           {/* Leaderboard - Mobile Card View (hidden on md+) */}
           <div className="md:hidden space-y-3">
-            {entries.length === 0 ? (
+            {rankedEntries.length === 0 ? (
               <div className="bg-white/80 dark:bg-black/20 backdrop-blur-sm rounded-xl shadow-lg p-12 text-center border border-orange-100 dark:border-white/10">
-                <div className="text-6xl mb-4">🏆</div>
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">No Data Yet</h2>
+                <div className="text-6xl mb-4">{searchQuery ? '🔍' : '🏆'}</div>
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">
+                  {searchQuery ? 'No Results Found' : 'No Data Yet'}
+                </h2>
                 <p className="text-slate-600 dark:text-slate-400">
-                  {isActive
-                    ? 'Karma tracking has just started. Post and comment on r/CryptoCurrency to appear here!'
-                    : 'No karma data recorded for this round.'}
+                  {searchQuery
+                    ? `No users matching "${searchQuery}" found for this round.`
+                    : isActive
+                      ? 'Karma tracking has just started. Post and comment on r/CryptoCurrency to appear here!'
+                      : 'No karma data recorded for this round.'}
                 </p>
               </div>
             ) : (
-              entries.map((entry: any, i: number) => (
+              rankedEntries.map((entry: any, i: number) => {
+                const rank = entry.rank ?? i + 1;
+                return (
                 <div key={entry.id} className="bg-white/80 dark:bg-black/20 backdrop-blur-sm rounded-lg shadow-md p-4 border border-orange-100 dark:border-white/10">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <div className="text-2xl">
-                        {i === 0 && '🥇'}
-                        {i === 1 && '🥈'}
-                        {i === 2 && '🥉'}
-                        {i > 2 && <span className="font-bold text-lg text-slate-600 dark:text-slate-400">#{i + 1}</span>}
+                        {rank === 1 && '🥇'}
+                        {rank === 2 && '🥈'}
+                        {rank === 3 && '🥉'}
+                        {rank > 3 && <span className="font-bold text-lg text-slate-600 dark:text-slate-400">#{rank}</span>}
                       </div>
                       <a
                         href={`https://reddit.com/u/${entry.username}`}
@@ -163,20 +195,24 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
                     <div className="text-2xl font-bold text-rcc-orange">{entry.totalKarma.toLocaleString()}</div>
                   </div>
                 </div>
-              ))
+              );})
             )}
           </div>
 
           {/* Leaderboard - Desktop Table View (hidden on mobile) */}
           <div className="hidden md:block bg-white/80 dark:bg-black/20 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden border border-orange-100 dark:border-white/10">
-            {entries.length === 0 ? (
+            {rankedEntries.length === 0 ? (
               <div className="p-12 text-center">
-                <div className="text-6xl mb-4">🏆</div>
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">No Data Yet</h2>
+                <div className="text-6xl mb-4">{searchQuery ? '🔍' : '🏆'}</div>
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">
+                  {searchQuery ? 'No Results Found' : 'No Data Yet'}
+                </h2>
                 <p className="text-slate-600 dark:text-slate-400">
-                  {isActive
-                    ? 'Karma tracking has just started. Post and comment on r/CryptoCurrency to appear here!'
-                    : 'No karma data recorded for this round.'}
+                  {searchQuery
+                    ? `No users matching "${searchQuery}" found for this round.`
+                    : isActive
+                      ? 'Karma tracking has just started. Post and comment on r/CryptoCurrency to appear here!'
+                      : 'No karma data recorded for this round.'}
                 </p>
               </div>
             ) : (
@@ -194,13 +230,15 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-orange-100 dark:divide-white/10">
-                    {entries.map((entry: any, i: number) => (
+                    {rankedEntries.map((entry: any, i: number) => {
+                      const rank = entry.rank ?? i + 1;
+                      return (
                       <tr key={entry.id} className="hover:bg-orange-50 dark:hover:bg-white/5 transition-colors">
                         <td className="px-4 py-3 text-center">
-                          {i === 0 && <span className="text-2xl">🥇</span>}
-                          {i === 1 && <span className="text-2xl">🥈</span>}
-                          {i === 2 && <span className="text-2xl">🥉</span>}
-                          {i > 2 && <span className="font-bold text-slate-600 dark:text-slate-400">{i + 1}</span>}
+                          {rank === 1 && <span className="text-2xl">🥇</span>}
+                          {rank === 2 && <span className="text-2xl">🥈</span>}
+                          {rank === 3 && <span className="text-2xl">🥉</span>}
+                          {rank > 3 && <span className="font-bold text-slate-600 dark:text-slate-400">{rank}</span>}
                         </td>
                         <td className="px-4 py-3">
                           <a
@@ -228,7 +266,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
                           {entry.commentCount}
                         </td>
                       </tr>
-                    ))}
+                    );})}
                   </tbody>
                 </table>
               </div>
