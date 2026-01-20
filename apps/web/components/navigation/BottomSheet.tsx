@@ -1,10 +1,11 @@
 'use client';
 
-import { Fragment, useRef } from 'react';
+import { Fragment, useRef, useState, useEffect } from 'react';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, SunIcon, MoonIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import type { NavItem } from './types';
 
 interface BottomSheetProps {
@@ -13,11 +14,18 @@ interface BottomSheetProps {
   onClose: () => void;
   title: string;
   items: NavItem[];
+  showThemeToggle?: boolean;
 }
 
-export default function BottomSheet({ id, isOpen, onClose, title, items }: BottomSheetProps) {
+export default function BottomSheet({ id, isOpen, onClose, title, items, showThemeToggle }: BottomSheetProps) {
   const pathname = usePathname();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <Transition show={isOpen} as={Fragment}>
@@ -56,7 +64,7 @@ export default function BottomSheet({ id, isOpen, onClose, title, items }: Botto
             leaveTo="translate-y-full"
           >
             <DialogPanel
-              className="w-full max-h-[70vh] overflow-y-auto
+              className="mobile-bottom-sheet w-full max-h-[70vh] overflow-y-auto
                 bg-white dark:bg-slate-900
                 rounded-t-2xl shadow-xl"
             >
@@ -144,6 +152,36 @@ export default function BottomSheet({ id, isOpen, onClose, title, items }: Botto
                   ))}
                 </ul>
               </nav>
+
+              {/* Theme Toggle */}
+              {showThemeToggle && mounted && (
+                <div className="px-4 py-3 border-t border-gray-200 dark:border-slate-700">
+                  <button
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    className="flex items-center gap-4 w-full px-4 py-3
+                      min-h-[44px]
+                      text-base font-medium
+                      text-gray-700 dark:text-gray-200
+                      hover:bg-gray-100 dark:hover:bg-slate-800
+                      rounded-lg transition-colors
+                      focus:outline-none focus-visible:ring-2
+                      focus-visible:ring-rcc-orange"
+                    aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                  >
+                    {theme === 'dark' ? (
+                      <>
+                        <SunIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                        Light Mode
+                      </>
+                    ) : (
+                      <>
+                        <MoonIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                        Dark Mode
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
 
               {/* Bottom padding for safe area */}
               <div className="h-6 safe-area-inset-bottom" aria-hidden="true" />

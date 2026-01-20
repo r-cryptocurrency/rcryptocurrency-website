@@ -42,7 +42,7 @@ export default function ManageNewsletterPage() {
         </div>
 
         {/* Unsubscribe Section */}
-        <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-lg dark:shadow-none border border-gray-200 dark:border-gray-800">
+        <div className="newsletter-card bg-white dark:bg-gray-900 rounded-xl p-6 shadow-lg dark:shadow-none border border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-semibold mb-4">Unsubscribe</h2>
 
           {status === 'success' ? (

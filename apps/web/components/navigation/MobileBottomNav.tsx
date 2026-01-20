@@ -87,6 +87,7 @@ export default function MobileBottomNav() {
           onClose={() => setActiveSheet(null)}
           title={category.label}
           items={category.items}
+          showThemeToggle={category.id === 'account'}
         />
       ))}
 

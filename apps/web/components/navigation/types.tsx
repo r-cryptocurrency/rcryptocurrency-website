@@ -12,7 +12,6 @@ import {
   DocumentTextIcon,
   LinkIcon,
   GiftIcon,
-  Cog6ToothIcon,
   UserCircleIcon,
 } from '@heroicons/react/24/outline';
 import type { ForwardRefExoticComponent, RefAttributes, SVGProps } from 'react';
@@ -92,7 +91,6 @@ export const NAVIGATION_CONFIG: NavigationConfig = {
       items: [
         { label: 'Link Wallet', href: '/link', icon: LinkIcon },
         { label: 'Claim Moons', href: '/claim', icon: GiftIcon },
-        { label: 'Preferences', href: '/newsletter/manage', icon: Cog6ToothIcon },
       ],
     },
   ],

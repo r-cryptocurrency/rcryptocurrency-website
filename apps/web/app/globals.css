@@ -55,6 +55,11 @@ html.dark .nav-dropdown-panel {
   background-color: rgb(30 41 59) !important; /* slate-800 */
 }
 
+/* Mobile bottom sheet - force dark mode styling */
+html.dark .mobile-bottom-sheet {
+  background-color: rgb(15 23 42) !important; /* slate-900 */
+}
+
 /* Newsletter page dark mode cards */
 html.dark .newsletter-card {
   background-color: rgb(17 24 39) !important; /* gray-900 */
