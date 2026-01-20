@@ -29,7 +29,7 @@ export default function MobileBottomNav() {
       <nav
         role="navigation"
         aria-label="Main navigation"
-        className="fixed bottom-0 left-0 right-0 z-40 md:hidden
+        className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-40 md:hidden
           bg-white dark:bg-slate-900
           border-t border-gray-200 dark:border-slate-700
           safe-area-inset-bottom"

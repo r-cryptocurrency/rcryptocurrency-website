@@ -70,7 +70,7 @@ export default function BottomSheet({ id, isOpen, onClose, title, items, showThe
             >
               {/* Header */}
               <div
-                className="sticky top-0 z-10
+                className="mobile-bottom-sheet-header sticky top-0 z-10
                   flex items-center justify-between
                   px-4 py-3
                   border-b border-gray-200 dark:border-slate-700

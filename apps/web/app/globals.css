@@ -60,6 +60,18 @@ html.dark .mobile-bottom-sheet {
   background-color: rgb(15 23 42) !important; /* slate-900 */
 }
 
+/* Mobile bottom sheet header - force dark mode styling */
+html.dark .mobile-bottom-sheet-header {
+  background-color: rgb(15 23 42) !important; /* slate-900 */
+  border-color: rgb(51 65 85) !important; /* slate-700 */
+}
+
+/* Mobile bottom nav bar - force dark mode styling */
+html.dark .mobile-bottom-nav {
+  background-color: rgb(15 23 42) !important; /* slate-900 */
+  border-color: rgb(51 65 85) !important; /* slate-700 */
+}
+
 /* Newsletter page dark mode cards */
 html.dark .newsletter-card {
   background-color: rgb(17 24 39) !important; /* gray-900 */
