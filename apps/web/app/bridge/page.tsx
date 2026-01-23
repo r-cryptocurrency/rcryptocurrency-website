@@ -1,5 +1,31 @@
 import { Title } from "@tremor/react";
 import Background from '../../components/Background';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'MOON Bridge | r/CryptoCurrency',
+  description: 'Bridge MOONs between Arbitrum One and Arbitrum Nova. Cross-chain bridge for MOON community tokens by CCMOON DAO.',
+  openGraph: {
+    title: 'MOON Bridge | r/CryptoCurrency',
+    description: 'Bridge MOONs between Arbitrum One and Arbitrum Nova. Cross-chain bridge for MOON community tokens.',
+    type: 'website',
+    url: 'https://rcryptocurrency.com/bridge',
+    images: [
+      {
+        url: 'https://rcryptocurrency.com/img/logorcc.png',
+        width: 400,
+        height: 400,
+        alt: 'r/CryptoCurrency Logo',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'MOON Bridge | r/CryptoCurrency',
+    description: 'Bridge MOONs between Arbitrum One and Arbitrum Nova.',
+    images: ['https://rcryptocurrency.com/img/logorcc.png'],
+  },
+};
 
 export default function BridgePage() {
   return (

@@ -13,6 +13,7 @@ import {
   LinkIcon,
   GiftIcon,
   UserCircleIcon,
+  CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
 import type { ForwardRefExoticComponent, RefAttributes, SVGProps } from 'react';
 
@@ -54,6 +55,15 @@ function RedditIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// Bridge icon as inline SVG component
+function BridgeIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M3 17h18M5 17v-4a7 7 0 0 1 14 0v4M8 17v-3M12 17v-5M16 17v-3" />
+    </svg>
+  );
+}
+
 export const NAVIGATION_CONFIG: NavigationConfig = {
   home: {
     label: 'Home',
@@ -62,18 +72,6 @@ export const NAVIGATION_CONFIG: NavigationConfig = {
   },
   categories: [
     {
-      id: 'market',
-      label: 'Market',
-      icon: ChartBarIcon,
-      items: [
-        { label: 'Sentiment Index', href: '/stats', icon: ChartBarIcon },
-        { label: 'Richlist', href: '/richlist', icon: BanknotesIcon },
-        { label: 'Burns', href: '/burns', icon: FireIcon },
-        { label: 'Swap', href: '/swap', icon: ArrowsRightLeftIcon },
-        { label: 'Bridge', href: '/bridge', icon: ArrowsRightLeftIcon },
-      ],
-    },
-    {
       id: 'community',
       label: 'Community',
       icon: UserGroupIcon,
@@ -81,9 +79,28 @@ export const NAVIGATION_CONFIG: NavigationConfig = {
         { label: 'Foundation', href: '/foundation', icon: UserGroupIcon },
         { label: 'Leaderboard', href: '/leaderboard', icon: TrophyIcon },
         { label: 'Calendar', href: '/calendar', icon: CalendarIcon },
-        { label: 'Partner', href: '/advertise', icon: MegaphoneIcon },
         { label: 'Newsletter', href: '/newsletter', icon: EnvelopeIcon },
         { label: 'Constitution', href: '/2025_Constitution', icon: DocumentTextIcon },
+      ],
+    },
+    {
+      id: 'moons',
+      label: 'Moons',
+      icon: CurrencyDollarIcon,
+      items: [
+        { label: 'Richlist', href: '/richlist', icon: BanknotesIcon },
+        { label: 'Burns', href: '/burns', icon: FireIcon },
+        { label: 'Swap', href: '/swap', icon: ArrowsRightLeftIcon },
+        { label: 'Bridge', href: '/bridge', icon: BridgeIcon },
+      ],
+    },
+    {
+      id: 'market',
+      label: 'Market',
+      icon: ChartBarIcon,
+      items: [
+        { label: 'Become a Partner', href: '/advertise', icon: MegaphoneIcon },
+        { label: 'Sentiment Index', href: '/stats', icon: ChartBarIcon },
       ],
     },
     {
