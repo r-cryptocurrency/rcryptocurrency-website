@@ -1,10 +1,11 @@
 
 import { Title, Text } from "@tremor/react";
 import Background from '../../components/Background';
+import { Metadata } from 'next';
 
-export const metadata = {
-  title: 'Events Calendar | r/CryptoCurrency',
-  description: 'Upcoming AMAs, events, and community schedules.',
+export const metadata: Metadata = {
+  title: 'Events Calendar',
+  description: 'Upcoming AMAs, events, and community schedules for r/CryptoCurrency.',
 };
 
 export default function CalendarPage() {

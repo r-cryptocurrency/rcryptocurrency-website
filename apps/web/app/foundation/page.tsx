@@ -1,6 +1,12 @@
 import { Title, Text, Card } from "@tremor/react";
 import Background from '../../components/Background';
 import Link from 'next/link';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'rCryptoCurrency Foundation (CCMOON DAO)',
+  description: 'The official non-profit organization supporting r/CryptoCurrency\'s 10M+ members through education, governance, and community initiatives.',
+};
 
 export default function FoundationPage() {
   return (

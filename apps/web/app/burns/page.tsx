@@ -4,6 +4,12 @@ import Background from '../../components/Background';
 import BurnsFilters from './BurnsFilters';
 import BurnChart from './BurnChart';
 import Link from 'next/link';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'MOON Burns',
+  description: 'Track MOON token burns on r/CryptoCurrency. View burn history, charts, and total supply reduction.',
+};
 
 export const dynamic = 'force-dynamic';
 

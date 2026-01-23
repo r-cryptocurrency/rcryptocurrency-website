@@ -5,6 +5,12 @@ import Background from '../../components/Background';
 import Link from 'next/link';
 import RichlistTable from './RichlistTable';
 import Search from './Search';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'MOON Richlist',
+  description: 'View the top MOON token holders on r/CryptoCurrency. Track wallet balances and whale movements.',
+};
 
 export const dynamic = 'force-dynamic';
 

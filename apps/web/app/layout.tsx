@@ -8,10 +8,38 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'rCryptoCurrency',
-  description: 'The Biggest Crypto Community on the Internet!',
+  metadataBase: new URL('https://rcryptocurrency.com'),
+  title: {
+    default: 'r/CryptoCurrency - World\'s Largest Crypto Community',
+    template: '%s | r/CryptoCurrency',
+  },
+  description: 'The world\'s largest cryptocurrency community with 10M+ members. Home of the MOON token, community governance, and crypto education.',
   icons: {
     icon: '/img/favicon.webp',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://rcryptocurrency.com',
+    siteName: 'r/CryptoCurrency',
+    title: 'r/CryptoCurrency - World\'s Largest Crypto Community',
+    description: 'The world\'s largest cryptocurrency community with 10M+ members. Home of the MOON token, community governance, and crypto education.',
+    images: [
+      {
+        url: '/img/logorcc.png',
+        width: 400,
+        height: 400,
+        alt: 'r/CryptoCurrency Logo',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@CCMOD_',
+    creator: '@CCMOD_',
+    title: 'r/CryptoCurrency - World\'s Largest Crypto Community',
+    description: 'The world\'s largest cryptocurrency community with 10M+ members. Home of the MOON token, community governance, and crypto education.',
+    images: ['/img/logorcc.png'],
   },
 }
 

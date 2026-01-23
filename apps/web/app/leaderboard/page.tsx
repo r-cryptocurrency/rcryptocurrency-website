@@ -2,6 +2,12 @@ import { prisma } from '@rcryptocurrency/database';
 import Background from '../../components/Background';
 import Link from 'next/link';
 import LeaderboardSearch from './LeaderboardSearch';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Karma Leaderboard',
+  description: 'r/CryptoCurrency karma leaderboard. Track top contributors and karma earned in 28-day rounds.',
+};
 
 export const revalidate = 60; // Revalidate every minute
 

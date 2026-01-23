@@ -4,10 +4,11 @@ import Background from '../../components/Background';
 import OpenInUniswap from './OpenInUniswap';
 import SwapFilters from './SwapFilters';
 import Link from 'next/link';
+import { Metadata } from 'next';
 
-export const metadata = {
-  title: 'Swap MOONs | r/CryptoCurrency',
-  description: 'Swap ETH for MOONs on Arbitrum One via Uniswap.',
+export const metadata: Metadata = {
+  title: 'Swap MOONs',
+  description: 'Swap ETH for MOONs on Arbitrum One via Uniswap. View recent swaps and trade history.',
 };
 
 export const dynamic = 'force-dynamic';

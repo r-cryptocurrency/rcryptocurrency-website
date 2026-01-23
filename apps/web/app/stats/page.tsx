@@ -3,6 +3,12 @@ import Background from '../../components/Background';
 import SentimentChart from './SentimentChart';
 import SentimentInfo from '../scraper/SentimentInfo';
 import Link from 'next/link';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Sentiment Index',
+  description: 'Multi-platform cryptocurrency sentiment analysis and market insights. Real-time data tracking market mood across platforms.',
+};
 
 export const revalidate = 60; // Revalidate every minute
 

@@ -3,6 +3,12 @@ import Background from '../../components/Background';
 import SentimentChart from '../stats/SentimentChart';
 import SentimentInfo from './SentimentInfo';
 import Link from 'next/link';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Subreddit Scraper',
+  description: 'Real-time analysis of r/CryptoCurrency discussions, sentiment tracking, and project mentions.',
+};
 
 export const revalidate = 60; // Revalidate every minute
 

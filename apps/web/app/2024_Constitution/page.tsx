@@ -1,5 +1,11 @@
 import React from 'react';
 import Background from '../../components/Background';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: '2024 Constitution',
+  description: 'CCMOON DAO Constitution v0.1.0 - The original governance framework for r/CryptoCurrency community.',
+};
 
 export default function Constitution2024() {
   return (

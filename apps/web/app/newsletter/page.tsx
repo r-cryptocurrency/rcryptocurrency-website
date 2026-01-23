@@ -1,6 +1,12 @@
 import { prisma } from '@rcryptocurrency/database';
 import NewsletterForm from '@/components/NewsletterForm';
 import Link from 'next/link';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Newsletter',
+  description: 'Subscribe to the r/CryptoCurrency newsletter. Get the latest crypto news, community updates, and MOON token insights.',
+};
 
 // Force dynamic rendering (don't try to query DB at build time)
 export const dynamic = 'force-dynamic';

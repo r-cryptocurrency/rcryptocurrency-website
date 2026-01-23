@@ -1,6 +1,12 @@
 import { Title, Text, Card } from "@tremor/react";
 import Background from '../../components/Background';
 import Link from 'next/link';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Become a Partner',
+  description: 'Partner with the world\'s largest cryptocurrency community. Collaborate with the rCryptoCurrency Foundation on sponsorships, research, and community initiatives.',
+};
 
 export default function AdvertisePage() {
   return (
