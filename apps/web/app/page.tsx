@@ -212,11 +212,6 @@ export default async function Home() {
                   View Index
                 </a>
               </div>
-              <div className="mt-6 p-4 bg-sky-50/50 dark:bg-sky-950/20 rounded-lg border border-sky-200/50 dark:border-sky-800/50">
-                <p className="text-sm text-sky-900 dark:text-sky-200">
-                  Interested in purchasing or licensing? Contact: <a href="https://t.me/TwoCentTimmy" target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">@TwoCentTimmy</a>, <a href="https://t.me/jwinterm" target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">@jwinterm</a>, <a href="https://t.me/u_mvea" target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">@u_mvea</a>
-                </p>
-              </div>
             </div>
           </div>
         </div>
@@ -238,11 +233,6 @@ export default async function Home() {
                 <a href="/advertise" className="inline-block bg-rcc-orange hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
                   Learn More
                 </a>
-              </div>
-              <div className="mt-6 p-4 bg-sky-50/50 dark:bg-sky-950/20 rounded-lg border border-sky-200/50 dark:border-sky-800/50">
-                <p className="text-sm text-sky-900 dark:text-sky-200">
-                  Contact us on Telegram: <a href="https://t.me/TwoCentTimmy" target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">@TwoCentTimmy</a>, <a href="https://t.me/jwinterm" target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">@jwinterm</a>, <a href="https://t.me/u_mvea" target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">@u_mvea</a>
-                </p>
               </div>
             </div>
             <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-8 rounded-2xl border-2 border-rcc-orange/30 dark:border-rcc-orange/50 shadow-xl">

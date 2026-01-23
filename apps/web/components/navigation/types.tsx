@@ -66,10 +66,11 @@ export const NAVIGATION_CONFIG: NavigationConfig = {
       label: 'Market',
       icon: ChartBarIcon,
       items: [
-        { label: 'Stats', href: '/stats', icon: ChartBarIcon },
+        { label: 'Sentiment Index', href: '/stats', icon: ChartBarIcon },
         { label: 'Richlist', href: '/richlist', icon: BanknotesIcon },
         { label: 'Burns', href: '/burns', icon: FireIcon },
         { label: 'Swap', href: '/swap', icon: ArrowsRightLeftIcon },
+        { label: 'Bridge', href: '/bridge', icon: ArrowsRightLeftIcon },
       ],
     },
     {
@@ -77,9 +78,10 @@ export const NAVIGATION_CONFIG: NavigationConfig = {
       label: 'Community',
       icon: UserGroupIcon,
       items: [
+        { label: 'Foundation', href: '/foundation', icon: UserGroupIcon },
         { label: 'Leaderboard', href: '/leaderboard', icon: TrophyIcon },
         { label: 'Calendar', href: '/calendar', icon: CalendarIcon },
-        { label: 'Advertise', href: '/advertise', icon: MegaphoneIcon },
+        { label: 'Partner', href: '/advertise', icon: MegaphoneIcon },
         { label: 'Newsletter', href: '/newsletter', icon: EnvelopeIcon },
         { label: 'Constitution', href: '/2025_Constitution', icon: DocumentTextIcon },
       ],
