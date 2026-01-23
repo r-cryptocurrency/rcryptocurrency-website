@@ -1,5 +1,4 @@
 import Image from 'next/image'
-import { prisma } from '@rcryptocurrency/database';
 import { Card, Metric, Text, Flex, Grid } from "@tremor/react";
 import Background from '../components/Background';
 import InteractiveMoon from '../components/InteractiveMoon';
@@ -9,10 +8,13 @@ export const dynamic = 'force-dynamic';
 
 async function getStats() {
   try {
+    // Dynamically import prisma to catch initialization errors
+    const { prisma } = await import('@rcryptocurrency/database');
+
     const holderCount = await prisma.holder.count();
     const userCount = await prisma.redditUser.count();
     const submissionCount = await prisma.submission.count();
-    
+
       // Calculate total MOONs tracked (sum of totalBalance)
     const totalMoons = await prisma.holder.aggregate({
       _sum: {
@@ -33,6 +35,7 @@ async function getStats() {
     };
   } catch (error) {
     console.error('Failed to fetch stats:', error);
+    // Return default values when database is unavailable
     return {
       holderCount: 0,
       userCount: 0,
@@ -103,6 +106,108 @@ export default async function Home() {
 
             <div className="hidden lg:block relative">
               <InteractiveMoon />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Become a Partner Section */}
+      <section className="py-20 bg-white/50 dark:bg-slate-900/50">
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div>
+              <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-3">
+                <span className="text-4xl">🤝</span>
+                Become a Partner
+              </h2>
+              <p className="text-lg text-slate-600 dark:text-white/80 mb-6">
+                Collaborate with the World's Largest Cryptocurrency Community. We welcome partnerships that share our commitment to education, transparency, and ethical practices in crypto.
+              </p>
+              <div className="flex flex-wrap gap-4">
+                <a href="/advertise" className="inline-block bg-rcc-orange hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
+                  Learn More
+                </a>
+              </div>
+              <div className="mt-6 p-4 bg-sky-50/50 dark:bg-sky-950/20 rounded-lg border border-sky-200/50 dark:border-sky-800/50">
+                <p className="text-sm text-sky-900 dark:text-sky-200">
+                  Contact us on Telegram: <a href="https://t.me/TwoCentTimmy" target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">@TwoCentTimmy</a>, <a href="https://t.me/jwinterm" target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">@jwinterm</a>, <a href="https://t.me/u_mvea" target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">@u_mvea</a>
+                </p>
+              </div>
+            </div>
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-8 rounded-2xl border-2 border-rcc-orange/30 dark:border-rcc-orange/50 shadow-xl">
+              <div className="space-y-4 text-center">
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Partnership Opportunities</h3>
+                <ul className="space-y-3 text-left">
+                  <li className="flex items-start gap-3">
+                    <span className="text-rcc-orange font-bold text-lg">✓</span>
+                    <span className="text-slate-700 dark:text-slate-300">Community Sponsorships</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-rcc-orange font-bold text-lg">✓</span>
+                    <span className="text-slate-700 dark:text-slate-300">Research Collaboration</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-rcc-orange font-bold text-lg">✓</span>
+                    <span className="text-slate-700 dark:text-slate-300">Joint Initiatives</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-rcc-orange font-bold text-lg">✓</span>
+                    <span className="text-slate-700 dark:text-slate-300">Values-Aligned Projects</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Sentiment Index Section */}
+      <section className="py-20">
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-8 rounded-2xl border-2 border-emerald-500/30 dark:border-emerald-500/50 shadow-xl">
+              <div className="space-y-4 text-center">
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Multi-Platform Index</h3>
+                <p className="text-slate-600 dark:text-slate-400 mb-4">
+                  Our multiplatform sentiment analysis tool provides valuable market insights.
+                </p>
+                <ul className="space-y-3 text-left">
+                  <li className="flex items-start gap-3">
+                    <span className="text-emerald-500 font-bold text-lg">📊</span>
+                    <span className="text-slate-700 dark:text-slate-300">Real-time Sentiment Data</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-emerald-500 font-bold text-lg">🔍</span>
+                    <span className="text-slate-700 dark:text-slate-300">Trending Projects & Tokens</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-emerald-500 font-bold text-lg">✅</span>
+                    <span className="text-slate-700 dark:text-slate-300">Compliance-First Approach</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div>
+              <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-3">
+                <span className="text-4xl">📈</span>
+                Sentiment Index
+              </h2>
+              <p className="text-lg text-slate-600 dark:text-white/80 mb-6">
+                Access our proprietary sentiment analysis platform that tracks market mood across multiple platforms. Our index is built with compliance at its core, respecting all Terms of Service from platforms while delivering actionable insights.
+              </p>
+              <p className="text-slate-600 dark:text-white/80 mb-6">
+                Perfect for researchers, educators, and community members looking to understand market sentiment and community trends.
+              </p>
+              <div className="flex flex-wrap gap-4">
+                <a href="/stats" className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
+                  View Index
+                </a>
+              </div>
+              <div className="mt-6 p-4 bg-sky-50/50 dark:bg-sky-950/20 rounded-lg border border-sky-200/50 dark:border-sky-800/50">
+                <p className="text-sm text-sky-900 dark:text-sky-200">
+                  Interested in purchasing or licensing? Contact: <a href="https://t.me/TwoCentTimmy" target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">@TwoCentTimmy</a>, <a href="https://t.me/jwinterm" target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">@jwinterm</a>, <a href="https://t.me/u_mvea" target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">@u_mvea</a>
+                </p>
+              </div>
             </div>
           </div>
         </div>

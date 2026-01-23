@@ -59,8 +59,30 @@ export default async function StatsPage({ searchParams }: { searchParams: { rang
     <Background>
       <div className="min-h-screen pt-24 pb-12">
         <div className="container mx-auto px-4">
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Subreddit Stats</h1>
-          <p className="text-slate-600 dark:text-white/80 mb-8">Real-time analysis of r/CryptoCurrency discussions.</p>
+          <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Sentiment Index</h1>
+          <p className="text-slate-600 dark:text-white/80 mb-8">Multi-platform sentiment analysis and market insights. Our compliant index respects all platform Terms of Service while providing valuable community sentiment data.</p>
+
+          {/* New Sentiment Index Info Section */}
+          <div className="bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-emerald-950/30 dark:to-blue-950/30 border-2 border-emerald-200 dark:border-emerald-800/50 rounded-xl p-8 mb-12">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">📈 What is the Sentiment Index?</h2>
+            <p className="text-slate-700 dark:text-slate-300 mb-4">
+              Our proprietary sentiment analysis platform tracks market mood and community sentiment across multiple platforms. Built with compliance at its core, our index respects all Terms of Service while delivering actionable market insights for traders, researchers, and community members.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white/60 dark:bg-slate-900/40 p-4 rounded-lg border border-emerald-200/50 dark:border-emerald-800/50">
+                <p className="font-bold text-emerald-600 dark:text-emerald-400 mb-1">Real-Time Data</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Live sentiment tracking across platforms</p>
+              </div>
+              <div className="bg-white/60 dark:bg-slate-900/40 p-4 rounded-lg border border-emerald-200/50 dark:border-emerald-800/50">
+                <p className="font-bold text-emerald-600 dark:text-emerald-400 mb-1">Compliance First</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Respects all platform T&Cs</p>
+              </div>
+              <div className="bg-white/60 dark:bg-slate-900/40 p-4 rounded-lg border border-emerald-200/50 dark:border-emerald-800/50">
+                <p className="font-bold text-emerald-600 dark:text-emerald-400 mb-1">Actionable Insights</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Market trends & project mentions</p>
+              </div>
+            </div>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
             {/* Top Mentions Card */}
