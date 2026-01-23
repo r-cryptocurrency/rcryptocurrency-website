@@ -4,6 +4,7 @@ import { Fragment, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import { Popover, PopoverButton, PopoverPanel, Transition, Dialog, DialogPanel, TransitionChild } from '@headlessui/react';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
@@ -13,6 +14,8 @@ import { NAVIGATION_CONFIG } from './types';
 export default function DesktopNav() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
 
   return (
     <>
@@ -208,14 +211,14 @@ export default function DesktopNav() {
             leaveFrom="translate-x-0"
             leaveTo="translate-x-full"
           >
-            <DialogPanel className="w-full max-w-xs bg-white dark:bg-slate-800 shadow-xl">
+            <DialogPanel className={`w-full max-w-xs shadow-xl ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
               {/* Header */}
-              <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 dark:border-slate-600">
-                <span className="text-lg font-semibold text-gray-900 dark:text-white">Menu</span>
+              <div className={`flex items-center justify-between px-4 py-4 border-b ${isDark ? 'border-slate-600' : 'border-gray-200'}`}>
+                <span className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Menu</span>
                 <button
                   type="button"
-                  className="p-2 -mr-2 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200
-                    focus:outline-none focus-visible:ring-2 focus-visible:ring-rcc-orange"
+                  className={`p-2 -mr-2 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-rcc-orange
+                    ${isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
                   onClick={() => setMobileMenuOpen(false)}
                   aria-label="Close menu"
                 >
@@ -224,7 +227,7 @@ export default function DesktopNav() {
               </div>
 
               {/* Menu Content */}
-              <nav className="px-4 py-4 space-y-6 bg-white dark:bg-slate-800">
+              <nav className={`px-4 py-4 space-y-6 ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
                 {/* Home */}
                 <Link
                   href="/"
@@ -232,7 +235,7 @@ export default function DesktopNav() {
                   className={`block px-3 py-2 rounded-lg text-base font-medium
                     ${pathname === '/'
                       ? 'text-rcc-orange bg-rcc-orange/10'
-                      : 'text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-700'
+                      : isDark ? 'text-gray-100 hover:bg-slate-700' : 'text-gray-700 hover:bg-gray-100'
                     }`}
                 >
                   Home
@@ -241,7 +244,7 @@ export default function DesktopNav() {
                 {/* Categories */}
                 {NAVIGATION_CONFIG.categories.map((category) => (
                   <div key={category.id}>
-                    <h3 className="px-3 text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <h3 className={`px-3 text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
                       {category.label}
                     </h3>
                     <ul className="mt-2 space-y-1">
@@ -253,7 +256,7 @@ export default function DesktopNav() {
                             className={`flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium
                               ${pathname === item.href
                                 ? 'text-rcc-orange bg-rcc-orange/10'
-                                : 'text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-700'
+                                : isDark ? 'text-gray-100 hover:bg-slate-700' : 'text-gray-700 hover:bg-gray-100'
                               }`}
                           >
                             <item.icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
@@ -267,7 +270,7 @@ export default function DesktopNav() {
 
                 {/* External Links */}
                 <div>
-                  <h3 className="px-3 text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <h3 className={`px-3 text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
                     External
                   </h3>
                   <ul className="mt-2 space-y-1">
@@ -278,8 +281,8 @@ export default function DesktopNav() {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={() => setMobileMenuOpen(false)}
-                          className="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium
-                            text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-700"
+                          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium
+                            ${isDark ? 'text-gray-100 hover:bg-slate-700' : 'text-gray-700 hover:bg-gray-100'}`}
                         >
                           <item.icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
                           {item.label}
