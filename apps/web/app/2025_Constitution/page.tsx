@@ -249,7 +249,7 @@ export default function Constitution2025() {
                     </div>
                     <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
                       <span className="font-bold block">Marketing Officer</span>
-                      <a href="https://reddit.com/u/mvea" className="text-rcc-orange hover:underline">u/mvea</a>
+                      <span className="text-slate-500">vacant</span>
                     </div>
                     <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
                       <span className="font-bold block">Moderation Officer</span>

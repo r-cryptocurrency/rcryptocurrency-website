@@ -150,7 +150,6 @@ export default function FoundationPage() {
                 <div className="flex flex-wrap justify-center gap-4">
                   <TelegramLink username="TwoCentTimmy" />
                   <TelegramLink username="jwinterm" />
-                  <TelegramLink username="u_mvea" />
                 </div>
               </div>
             </Card>
@@ -158,7 +157,7 @@ export default function FoundationPage() {
             {/* Compliance Notice */}
             <Card className="bg-blue-50/50 dark:bg-blue-950/20 backdrop-blur-sm border border-blue-200 dark:border-blue-800/50 p-6 rounded-xl">
               <p className="text-sm text-blue-900 dark:text-blue-200 text-center">
-                <span className="font-semibold">Compliance Notice:</span> The RCC Foundation operates in full compliance with Reddit's Terms of Service and all applicable regulations. We are committed to supporting the r/CryptoCurrency community within all established guidelines.
+                <span className="font-semibold">Compliance Notice:</span> The CC MOON DAO Foundation operates in full compliance with Reddit's Terms of Service and all applicable regulations. We are committed to supporting the r/CryptoCurrency community within all established guidelines.
               </p>
             </Card>
           </div>
