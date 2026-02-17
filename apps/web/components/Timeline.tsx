@@ -53,7 +53,7 @@ const TIMELINE_DATA: TimelineEvent[] = [
   {
     date: "February 2023",
     title: "Major Moon Burn",
-    description: "The bridge from Rinkeby testnet to Arbitrum nova was deprecated. 4.7M Moons were effectively burned in the process."
+    description: "The bridge from Rinkeby testnet to Arbitrum Nova was deprecated. 4.7M Moons were effectively burned in the process."
   },
   {
     date: "August 2022",
