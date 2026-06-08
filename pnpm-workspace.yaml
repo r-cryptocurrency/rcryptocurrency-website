@@ -1,3 +1,6 @@
 packages:
-  - "apps/*"
+  # Only the live web app is part of the workspace. The retired indexer apps
+  # (ledger / scraper / oracle) are excluded so their dead, vulnerable deps stay
+  # out of installs and audits. Their source remains on disk / in git history.
+  - "apps/web"
   - "packages/*"

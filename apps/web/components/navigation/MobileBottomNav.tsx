@@ -53,6 +53,21 @@ export default function MobileBottomNav() {
             <span className="text-xs mt-1 font-medium">Home</span>
           </Link>
 
+          {/* CCMOON DAO (moondao.llc) */}
+          <a
+            href="https://moondao.llc"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center justify-center
+              min-w-[64px] min-h-[44px] px-3 py-2
+              rounded-lg transition-colors text-rcc-orange hover:text-orange-600
+              focus:outline-none focus-visible:ring-2
+              focus-visible:ring-rcc-orange focus-visible:ring-offset-2"
+          >
+            <span className="text-xl leading-none" aria-hidden="true">🌙</span>
+            <span className="text-xs mt-1 font-medium">DAO</span>
+          </a>
+
           {/* Category Buttons */}
           {NAVIGATION_CONFIG.categories.map((category) => (
             <button

@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { DesktopNav, MobileBottomNav } from '../components/navigation'
 import { ThemeProvider } from '../components/ThemeProvider'
-import { Providers } from '../components/Providers'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -58,14 +57,12 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <Providers>
-            {/* Desktop: Top nav with dropdowns (hidden on mobile) */}
-            <DesktopNav />
-            {/* Main content */}
-            {children}
-            {/* Mobile: Bottom tab bar (hidden on desktop) */}
-            <MobileBottomNav />
-          </Providers>
+          {/* Desktop: Top nav with dropdowns (hidden on mobile) */}
+          <DesktopNav />
+          {/* Main content */}
+          {children}
+          {/* Mobile: Bottom tab bar (hidden on desktop) */}
+          <MobileBottomNav />
         </ThemeProvider>
       </body>
     </html>

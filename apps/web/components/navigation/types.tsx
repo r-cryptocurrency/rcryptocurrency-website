@@ -70,49 +70,9 @@ export const NAVIGATION_CONFIG: NavigationConfig = {
     href: '/',
     icon: HomeIcon,
   },
-  categories: [
-    {
-      id: 'community',
-      label: 'Community',
-      icon: UserGroupIcon,
-      items: [
-        { label: 'Foundation', href: '/foundation', icon: UserGroupIcon },
-        { label: 'Leaderboard', href: '/leaderboard', icon: TrophyIcon },
-        { label: 'Calendar', href: '/calendar', icon: CalendarIcon },
-        { label: 'Newsletter', href: '/newsletter', icon: EnvelopeIcon },
-        { label: 'Constitution', href: '/2025_Constitution', icon: DocumentTextIcon },
-      ],
-    },
-    {
-      id: 'moons',
-      label: 'Moons',
-      icon: CurrencyDollarIcon,
-      items: [
-        { label: 'Richlist', href: '/richlist', icon: BanknotesIcon },
-        { label: 'Burns', href: '/burns', icon: FireIcon },
-        { label: 'Swap', href: '/swap', icon: ArrowsRightLeftIcon },
-        { label: 'Bridge', href: '/bridge', icon: BridgeIcon },
-      ],
-    },
-    {
-      id: 'market',
-      label: 'Market',
-      icon: ChartBarIcon,
-      items: [
-        { label: 'Become a Partner', href: '/advertise', icon: MegaphoneIcon },
-        { label: 'Sentiment Index', href: '/stats', icon: ChartBarIcon },
-      ],
-    },
-    {
-      id: 'account',
-      label: 'Account',
-      icon: UserCircleIcon,
-      items: [
-        { label: 'Link Wallet', href: '/link', icon: LinkIcon },
-        { label: 'Claim Moons', href: '/claim', icon: GiftIcon },
-      ],
-    },
-  ],
+  // Pared down to homepage-only: tracking/wallet/governance pages removed
+  // (live data now lives on moondao.llc). Keep Home + external social links.
+  categories: [],
   external: [
     {
       label: 'Subreddit',

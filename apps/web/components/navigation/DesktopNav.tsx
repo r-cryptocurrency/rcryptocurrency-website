@@ -82,6 +82,18 @@ export default function DesktopNav() {
               Home
             </Link>
 
+            {/* CCMOON DAO (moondao.llc) */}
+            <a
+              href="https://moondao.llc"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 rounded-lg text-sm font-bold bg-white text-rcc-orange
+                hover:bg-white/90 transition-colors shadow
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              CCMOON DAO
+            </a>
+
             {/* Category Dropdowns */}
             {NAVIGATION_CONFIG.categories.map((category) => (
               <Popover key={category.id} className="relative">
@@ -240,6 +252,17 @@ export default function DesktopNav() {
                 >
                   Home
                 </Link>
+
+                {/* CCMOON DAO */}
+                <a
+                  href="https://moondao.llc"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block px-3 py-2 rounded-lg text-base font-bold text-rcc-orange bg-rcc-orange/10 hover:bg-rcc-orange/20"
+                >
+                  CCMOON DAO
+                </a>
 
                 {/* Categories */}
                 {NAVIGATION_CONFIG.categories.map((category) => (

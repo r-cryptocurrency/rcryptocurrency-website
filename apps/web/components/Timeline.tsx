@@ -10,10 +10,27 @@ type TimelineEvent = {
 
 const TIMELINE_DATA: TimelineEvent[] = [
   {
+    date: "June 2026",
+    title: "Arbitrum Nova Maintenance Mode",
+    description: "Arbitrum places Nova into maintenance mode. With Nova winding down, MOON holders are urged to bridge their tokens to Ethereum mainnet or Arbitrum One.",
+    link: "https://portal.arbitrum.io/bridge",
+    linkText: "Arbitrum Bridge"
+  },
+  {
+    date: "May 2026",
+    title: "Kraken Delists MOON",
+    description: "Kraken delists MOON, ending one of the token's earliest major centralized-exchange listings."
+  },
+  {
+    date: "Jan 2026",
+    title: "Reddit Bans MOON Advertising & AMAs",
+    description: "Reddit bans the DAO's paid advertising and hosted AMAs on r/CryptoCurrency, and bans moderators jwinterm and timmy from the platform."
+  },
+  {
     date: "Sept 2025",
     title: "Ratify Updated Constitution",
     description: "CCMOON DAO members vote to ratify updates to the DAO constitution to improve governance processes.",
-    link: "/2025_Constitution",
+    link: "https://moondao.llc/constitution",
     linkText: "Read Current Constitution"
   },
   {
@@ -25,7 +42,7 @@ const TIMELINE_DATA: TimelineEvent[] = [
     date: "June 2024",
     title: "Moonrise",
     description: "MOON holders vote to adopt the first DAO constitution and establish the CCMOON DAO.",
-    link: "/2024_Constitution",
+    link: "https://moondao.llc/constitution",
     linkText: "Read Constitution"
   },
   {
